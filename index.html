@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>BNB Inventory Manager</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="hero">
+        <div>
+          <p class="eyebrow">Operational inventory</p>
+          <h1>Track the everyday supplies that keep your Airbnb running.</h1>
+          <p class="hero-text">
+            Add inventory items, monitor current stock, and identify what needs to be restocked before it runs out.
+          </p>
+        </div>
+        <div class="hero-card">
+          <h2>Inventory overview</h2>
+          <div id="stats" class="stats-grid"></div>
+        </div>
+      </header>
+
+      <main class="content-grid">
+        <section class="panel">
+          <div class="panel-header">
+            <h2>Items in stock</h2>
+            <button id="reset-data" class="ghost-btn">Reset sample items</button>
+          </div>
+          <div id="inventory-list" class="inventory-list"></div>
+        </section>
+
+        <aside class="panel">
+          <div class="panel-header">
+            <h2>Add inventory item</h2>
+          </div>
+          <form id="item-form" class="item-form">
+            <label>
+              Item name
+              <input type="text" name="name" placeholder="Bed sheets" required />
+            </label>
+            <label>
+              Category
+              <input type="text" name="category" placeholder="Linen" required />
+            </label>
+            <label>
+              Current quantity
+              <input type="number" name="quantity" min="0" value="10" required />
+            </label>
+            <label>
+              Minimum stock level
+              <input type="number" name="minStock" min="0" value="5" required />
+            </label>
+            <label>
+              Unit
+              <input type="text" name="unit" placeholder="sets / bottles / rolls" required />
+            </label>
+            <label>
+              Location / room
+              <input type="text" name="location" placeholder="1801 or linen closet" required />
+            </label>
+            <label>
+              Notes
+              <input type="text" name="notes" placeholder="Keep extra sets for turnover" />
+            </label>
+            <button type="submit">Save item</button>
+          </form>
+
+          <div class="notes-card">
+            <h3>Planning for growth</h3>
+            <p>
+              This layout is ready to be connected to Google Sheets later, with columns for item name, category, quantity, minimum stock, unit, location, and notes.
+            </p>
+          </div>
+        </aside>
+      </main>
+    </div>
+
+    <script src="app.js"></script>
+  </body>
+</html>
