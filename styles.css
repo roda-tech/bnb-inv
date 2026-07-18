@@ -200,6 +200,10 @@ button[type="submit"],
   background: #fff;
 }
 
+.hidden {
+  display: none !important;
+}
+
 .notes-card {
   margin-top: 18px;
   padding: 14px;
