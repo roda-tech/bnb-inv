@@ -48,11 +48,11 @@
               <input type="text" name="category" placeholder="Linen" required />
             </label>
             <label>
-              Current quantity
-              <input type="number" name="quantity" min="0" value="10" required />
+              Opening stock
+              <input type="number" name="openingStock" min="0" value="10" required />
             </label>
             <label>
-              Price per item ($)
+              Price per item (₱)
               <input type="number" name="price" min="0" step="0.01" value="8" required />
             </label>
             <label>
@@ -60,12 +60,20 @@
               <input type="number" name="minStock" min="0" value="5" required />
             </label>
             <label>
+              Reorder quantity
+              <input type="number" name="reorderQty" min="0" value="10" required />
+            </label>
+            <label>
               Unit
               <input type="text" name="unit" placeholder="sets / bottles / rolls" required />
             </label>
             <label>
-              Location / room
-              <input type="text" name="location" placeholder="1801 or linen closet" required />
+              Storage location
+              <input type="text" name="storage" placeholder="1801 or linen closet" />
+            </label>
+            <label>
+              Tags
+              <input type="text" name="tags" placeholder="laundry, restroom" />
             </label>
             <label>
               Notes
@@ -77,11 +85,112 @@
           <div class="notes-card">
             <h3>Planning for growth</h3>
             <p>
-              This layout is ready to be connected to Google Sheets later, with columns for item name, category, quantity, minimum stock, unit, location, and notes.
+              This layout is ready for purchase recording. Add stock through purchase transactions and let the app derive current inventory levels automatically.
             </p>
           </div>
         </aside>
       </main>
+
+      <section class="panel purchase-panel">
+        <div class="panel-header">
+          <h2>Purchase transactions</h2>
+        </div>
+        <form id="purchase-form" class="transaction-form">
+          <label>
+            Date
+            <input type="date" name="date" required />
+          </label>
+          <label>
+            Item
+            <select name="itemId" required></select>
+          </label>
+          <label>
+            Unit
+            <input type="text" name="unit" placeholder="sets / bottles / rolls" required />
+          </label>
+          <label>
+            Quantity
+            <input type="number" name="quantity" min="1" value="1" required />
+          </label>
+          <label>
+            Cost per item (₱)
+            <input type="number" name="cost" min="0" step="0.01" value="0" required />
+          </label>
+          <label>
+            Note
+            <input type="text" name="note" placeholder="Supplier or package details" />
+          </label>
+          <button type="submit">Record purchase</button>
+        </form>
+
+        <div id="purchase-list" class="transaction-list"></div>
+      </section>
+
+      <section class="panel usage-panel">
+        <div class="panel-header">
+          <h2>Item usage</h2>
+        </div>
+        <form id="usage-form" class="transaction-form">
+          <label>
+            Date
+            <input type="date" name="date" required />
+          </label>
+          <label>
+            Item
+            <select name="itemId" required></select>
+          </label>
+          <label>
+            Unit
+            <input type="text" name="unit" placeholder="sets / bottles / rolls" required />
+          </label>
+          <label>
+            Quantity used
+            <input type="number" name="quantity" min="1" value="1" required />
+          </label>
+          <label>
+            Room
+            <input type="text" name="room" placeholder="Room 101" />
+          </label>
+          <label>
+            Note
+            <input type="text" name="note" placeholder="Usage details" />
+          </label>
+          <button type="submit">Record usage</button>
+        </form>
+
+        <div id="usage-list" class="transaction-list"></div>
+      </section>
+
+      <section class="panel damage-panel">
+        <div class="panel-header">
+          <h2>Damage tracker</h2>
+        </div>
+        <form id="damage-form" class="transaction-form">
+          <label>
+            Date
+            <input type="date" name="date" required />
+          </label>
+          <label>
+            Item
+            <select name="itemId" required></select>
+          </label>
+          <label>
+            Quantity damaged
+            <input type="number" name="quantity" min="1" value="1" required />
+          </label>
+          <label>
+            Location
+            <input type="text" name="location" placeholder="Storage area" />
+          </label>
+          <label>
+            Description
+            <input type="text" name="description" placeholder="Damage details" />
+          </label>
+          <button type="submit">Record damage</button>
+        </form>
+
+        <div id="damage-list" class="transaction-list"></div>
+      </section>
     </div>
 
     <script src="app.js?v=20260718-2"></script>
