@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Google OAuth Callback</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        display: grid;
+        place-items: center;
+        min-height: 100vh;
+        margin: 0;
+        background: #f8fafc;
+      }
+      .card {
+        background: white;
+        padding: 24px;
+        border-radius: 12px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+        text-align: center;
+        max-width: 380px;
+      }
+      .status {
+        margin-top: 16px;
+        color: #334155;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <h2>Google OAuth callback</h2>
+      <p>The sign-in response is being sent back to the app.</p>
+      <p class="status">This window will close automatically.</p>
+    </div>
+    <script>
+      const params = new URLSearchParams(window.location.hash.substring(1));
+      const accessToken = params.get('access_token');
+      const error = params.get('error');
+      const errorDescription = params.get('error_description');
+      const state = params.get('state');
+      const message = accessToken
+        ? 'Google OAuth completed successfully.'
+        : `Google OAuth failed: ${errorDescription || error || 'Unknown error'}`;
+
+      if (window.opener) {
+        window.opener.postMessage(
+          {
+            type: 'google-oauth',
+            accessToken,
+            error: error ? (errorDescription || error) : null,
+            message,
+            state
+          },
+          window.location.origin
+        );
+      }
+
+      window.setTimeout(() => window.close(), 500);
+    </script>
+  </body>
+</html>

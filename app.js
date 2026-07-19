@@ -393,6 +393,17 @@ function normalizeHeader(value) {
   return value.toString().trim().toLowerCase();
 }
 
+function getSpreadsheetId() {
+  const rawValue = sheetIdInput.value.toString().trim();
+  const urlMatch = rawValue.match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
+  if (urlMatch && urlMatch[1]) {
+    const spreadsheetId = urlMatch[1];
+    sheetIdInput.value = spreadsheetId;
+    return spreadsheetId;
+  }
+  return rawValue;
+}
+
 async function googleSheetsFetch(path, options = {}) {
   if (!sheetAccessToken) {
     throw new Error('Google Sheets access token is not available.');
@@ -416,7 +427,7 @@ async function googleSheetsFetch(path, options = {}) {
 }
 
 async function getSpreadsheetMetadata() {
-  const spreadsheetId = sheetIdInput.value.toString().trim();
+  const spreadsheetId = getSpreadsheetId();
   return googleSheetsFetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}`);
 }
 
@@ -434,7 +445,8 @@ async function validateWorkbookStructure() {
   }
 
   for (const [sheetName, expectedColumns] of Object.entries(SHEET_SPECS)) {
-    const valuesResponse = await googleSheetsFetch(`https://sheets.googleapis.com/v4/spreadsheets/${sheetIdInput.value.toString().trim()}/values/${encodeURIComponent(sheetName)}!1:1`);
+    const spreadsheetId = getSpreadsheetId();
+    const valuesResponse = await googleSheetsFetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(sheetName)}!1:1`);
     const headers = (valuesResponse.values && valuesResponse.values[0]) || [];
     const normalizedHeaders = headers.map(normalizeHeader);
     const normalizedExpected = expectedColumns.map(normalizeHeader);
@@ -451,7 +463,7 @@ async function createMissingSheets(sheetNames) {
     return;
   }
 
-  const spreadsheetId = sheetIdInput.value.toString().trim();
+  const spreadsheetId = getSpreadsheetId();
   const requests = sheetNames.map((sheetName) => ({ addSheet: { properties: { title: sheetName } } }));
   await googleSheetsFetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}:batchUpdate`, {
     method: 'POST',
@@ -460,16 +472,20 @@ async function createMissingSheets(sheetNames) {
 }
 
 async function writeSheetRows(sheetName, rows) {
-  const spreadsheetId = sheetIdInput.value.toString().trim();
+  const spreadsheetId = getSpreadsheetId();
   const encodedSheetName = encodeURIComponent(sheetName);
-  await googleSheetsFetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodedSheetName}!A1`, {
+  await googleSheetsFetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodedSheetName}!A1?valueInputOption=RAW`, {
     method: 'PUT',
-    body: JSON.stringify({ values: rows })
+    body: JSON.stringify({
+      range: `${sheetName}!A1`,
+      majorDimension: 'ROWS',
+      values: rows
+    })
   });
 }
 
 async function clearSheet(sheetName) {
-  const spreadsheetId = sheetIdInput.value.toString().trim();
+  const spreadsheetId = getSpreadsheetId();
   const encodedSheetName = encodeURIComponent(sheetName);
   await googleSheetsFetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodedSheetName}!A:Z:clear`, {
     method: 'POST',
@@ -478,7 +494,8 @@ async function clearSheet(sheetName) {
 }
 
 function canSyncWithSheet() {
-  return sheetConnected && sheetIdInput.value.toString().trim() !== '';
+  const spreadsheetId = getSpreadsheetId();
+  return sheetConnected && spreadsheetId !== '';
 }
 
 async function syncTransactionsToSheet() {
@@ -489,7 +506,7 @@ async function syncTransactionsToSheet() {
 
   updateSheetStatus('Syncing transactions to Google Sheet...', true);
   try {
-    const spreadsheetId = sheetIdInput.value.toString().trim();
+    const spreadsheetId = getSpreadsheetId();
     const metadata = await getSpreadsheetMetadata();
     const existingSheets = (metadata.sheets || []).map((sheet) => sheet.properties.title);
     const missingSheets = Object.keys(SHEET_SPECS).filter((sheetName) => !existingSheets.includes(sheetName));
@@ -980,7 +997,7 @@ filterTags.addEventListener('input', render);
 
 googleConnectBtn.addEventListener('click', async () => {
   const clientId = googleClientIdInput.value.toString().trim();
-  const spreadsheetId = sheetIdInput.value.toString().trim();
+  const spreadsheetId = getSpreadsheetId();
 
   if (!clientId) {
     updateSheetStatus('Enter a valid client ID first.', false);
@@ -992,14 +1009,14 @@ googleConnectBtn.addEventListener('click', async () => {
     return;
   }
 
-  updateSheetStatus('Connecting to Google...', true);
+  updateSheetStatus('Connecting to Google...', false);
 
   try {
     sheetAuthState = `bnb-inv-${Date.now()}`;
     const scope = 'https://www.googleapis.com/auth/spreadsheets.readonly https://www.googleapis.com/auth/spreadsheets';
     const authUrl = new URL('https://accounts.google.com/o/oauth2/v2/auth');
     authUrl.searchParams.set('client_id', clientId);
-    authUrl.searchParams.set('redirect_uri', window.location.origin + window.location.pathname);
+    authUrl.searchParams.set('redirect_uri', `${window.location.origin}/oauth-callback.html`);
     authUrl.searchParams.set('response_type', 'token');
     authUrl.searchParams.set('scope', scope);
     authUrl.searchParams.set('include_granted_scopes', 'true');
@@ -1068,9 +1085,10 @@ sheetImportBtn.addEventListener('click', async () => {
     }
 
     const readSheetValues = async (sheetName) => {
-      const response = await googleSheetsFetch(`https://sheets.googleapis.com/v4/spreadsheets/${sheetIdInput.value.toString().trim()}/values/${encodeURIComponent(sheetName)}`);
-      return response.values || [];
-    };
+    const spreadsheetId = getSpreadsheetId();
+    const response = await googleSheetsFetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(sheetName)}`);
+    return response.values || [];
+  };
 
     const dashboardRows = await readSheetValues('Dashboard');
     const masterInventoryRows = await readSheetValues('MasterInventory');
@@ -1078,8 +1096,8 @@ sheetImportBtn.addEventListener('click', async () => {
     const usageRows = await readSheetValues('Usage');
     const damageRows = await readSheetValues('Damages');
 
-    if (dashboardRows.length < 2 || masterInventoryRows.length < 2 || purchaseRows.length < 2 || usageRows.length < 2 || damageRows.length < 2) {
-      throw new Error('The workbook is present but does not contain records yet. Export first to populate the sheets.');
+    if (masterInventoryRows.length < 2) {
+      throw new Error('The workbook does not contain inventory records yet. Export first to populate MasterInventory.');
     }
 
     const importedItems = masterInventoryRows.slice(1).map((row, index) => ({
