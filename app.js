@@ -99,6 +99,8 @@ const sheetImportBtn = document.getElementById('sheet-import');
 const sheetExportBtn = document.getElementById('sheet-export');
 const sheetStatus = document.getElementById('sheet-status');
 let sheetConnected = false;
+let sheetAccessToken = null;
+let sheetAuthState = null;
 let lastSheetSync = null;
 
 function normalizeItems(itemsToNormalize) {
@@ -294,6 +296,40 @@ function updateSheetStatus(message, connected = sheetConnected) {
   sheetConnected = connected;
   googleConnectBtn.classList.toggle('hidden', connected);
   googleDisconnectBtn.classList.toggle('hidden', !connected);
+}
+
+function handleGoogleOAuthRedirect() {
+  const hash = window.location.hash.substring(1);
+  if (!hash) {
+    return;
+  }
+
+  const params = new URLSearchParams(hash);
+  const accessToken = params.get('access_token');
+  const error = params.get('error');
+  const errorDescription = params.get('error_description');
+  const state = params.get('state');
+
+  if (window.opener && (accessToken || error)) {
+    if (sheetAuthState && state && state !== sheetAuthState) {
+      window.opener.postMessage({ type: 'google-oauth', error: 'Invalid OAuth state.' }, window.location.origin);
+      window.close();
+      return;
+    }
+
+    const message = accessToken
+      ? 'Google OAuth completed successfully.'
+      : `Google OAuth failed: ${errorDescription || error || 'Unknown error'}`;
+
+    window.opener.postMessage({
+      type: 'google-oauth',
+      accessToken,
+      error: error ? (errorDescription || error) : null,
+      message
+    }, window.location.origin);
+
+    window.close();
+  }
 }
 
 function canSyncWithSheet() {
@@ -776,23 +812,76 @@ filterCategory.addEventListener('input', render);
 filterTags.addEventListener('input', render);
 
 googleConnectBtn.addEventListener('click', async () => {
-  if (!googleClientIdInput.value.toString().trim()) {
+  const clientId = googleClientIdInput.value.toString().trim();
+  const spreadsheetId = sheetIdInput.value.toString().trim();
+
+  if (!clientId) {
     updateSheetStatus('Enter a valid client ID first.', false);
     return;
   }
 
+  if (!spreadsheetId) {
+    updateSheetStatus('Enter a spreadsheet ID first.', false);
+    return;
+  }
+
   updateSheetStatus('Connecting to Google...', true);
+
   try {
-    // TODO: implement OAuth flow.
-    await new Promise((resolve) => setTimeout(resolve, 500));
-    updateSheetStatus('Connected to Google Sheets.', true);
+    sheetAuthState = `bnb-inv-${Date.now()}`;
+    const scope = 'https://www.googleapis.com/auth/spreadsheets.readonly https://www.googleapis.com/auth/spreadsheets';
+    const authUrl = new URL('https://accounts.google.com/o/oauth2/v2/auth');
+    authUrl.searchParams.set('client_id', clientId);
+    authUrl.searchParams.set('redirect_uri', window.location.origin + window.location.pathname);
+    authUrl.searchParams.set('response_type', 'token');
+    authUrl.searchParams.set('scope', scope);
+    authUrl.searchParams.set('include_granted_scopes', 'true');
+    authUrl.searchParams.set('prompt', 'consent');
+    authUrl.searchParams.set('state', sheetAuthState);
+
+    const popup = window.open(authUrl.toString(), 'google-oauth', 'width=500,height=700');
+    if (!popup) {
+      throw new Error('Popup blocked. Please allow popups for this site.');
+    }
+
+    const authResult = await new Promise((resolve, reject) => {
+      const handleMessage = (event) => {
+        if (event.origin !== window.location.origin) {
+          return;
+        }
+
+        if (event.data && event.data.type === 'google-oauth') {
+          window.removeEventListener('message', handleMessage);
+          if (event.data.error) {
+            reject(new Error(event.data.error));
+          } else {
+            resolve(event.data);
+          }
+        }
+      };
+
+      window.addEventListener('message', handleMessage);
+      const timer = window.setInterval(() => {
+        if (popup.closed) {
+          window.clearInterval(timer);
+          window.removeEventListener('message', handleMessage);
+          reject(new Error('Google sign-in was cancelled.'));
+        }
+      }, 500);
+    });
+
+    sheetAccessToken = authResult.accessToken || null;
+    updateSheetStatus(`Connected: ${authResult.message || 'Google OAuth completed successfully.'}`, true);
   } catch (error) {
+    sheetAccessToken = null;
     updateSheetStatus(`Connection failed: ${error.message || 'Unknown error'}`, false);
   }
 });
 
 googleDisconnectBtn.addEventListener('click', () => {
   sheetConnected = false;
+  sheetAccessToken = null;
+  sheetAuthState = null;
   updateSheetStatus('Disconnected from Google Sheets.', false);
 });
 
@@ -834,3 +923,4 @@ resetPurchaseForm();
 resetUsageForm();
 resetDamageForm();
 render();
+window.addEventListener('load', handleGoogleOAuthRedirect);
