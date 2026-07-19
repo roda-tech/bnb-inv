@@ -332,6 +332,151 @@ function handleGoogleOAuthRedirect() {
   }
 }
 
+const SHEET_SPECS = {
+  Dashboard: ['Number of Low Stock', 'Current total cost', 'List of Items with Low Stock'],
+  MasterInventory: ['Category', 'ItemName', 'Unit', 'CurrentStock', 'Minimum', 'ReorderQty', 'Cost', 'Storage', 'Status', 'Tags', 'Note'],
+  Purchases: ['Date', 'ItemName', 'Unit', 'Quantity', 'Cost', 'Note'],
+  Usage: ['Date', 'ItemName', 'Unit', 'Quantity', 'Note', 'Room'],
+  Damages: ['Date', 'ItemName', 'Quantity', 'Description', 'Location']
+};
+
+function getDashboardRows() {
+  const lowStockItems = items.filter((item) => {
+    const status = getStatus(item);
+    return status === 'low-stock' || status === 'out-of-stock';
+  });
+  const currentTotalCost = items.reduce((sum, item) => sum + getCurrentStock(item) * getLatestCost(item), 0);
+  return [
+    ['Number of Low Stock', 'Current total cost', 'List of Items with Low Stock'],
+    [lowStockItems.length, `₱${currentTotalCost.toFixed(2)}`, lowStockItems.map((item) => item.name).join(', ') || 'None']
+  ];
+}
+
+function getMasterInventoryRows() {
+  return items.map((item) => [
+    item.category,
+    item.name,
+    item.unit,
+    getCurrentStock(item),
+    item.minStock,
+    item.reorderQty,
+    getLatestCost(item).toFixed(2),
+    item.storage,
+    getStatus(item).replace('-', ' '),
+    item.tags,
+    item.notes
+  ]);
+}
+
+function getPurchaseRows() {
+  return purchases.map((purchase) => {
+    const item = items.find((entry) => entry.id === purchase.itemId);
+    return [purchase.date, item ? item.name : 'Unknown', purchase.unit, purchase.quantity, purchase.cost.toFixed(2), purchase.note];
+  });
+}
+
+function getUsageRows() {
+  return usages.map((usage) => {
+    const item = items.find((entry) => entry.id === usage.itemId);
+    return [usage.date, item ? item.name : 'Unknown', usage.unit, usage.quantity, usage.note, usage.room];
+  });
+}
+
+function getDamageRows() {
+  return damages.map((damage) => {
+    const item = items.find((entry) => entry.id === damage.itemId);
+    return [damage.date, item ? item.name : 'Unknown', damage.quantity, damage.description, damage.location];
+  });
+}
+
+function normalizeHeader(value) {
+  return value.toString().trim().toLowerCase();
+}
+
+async function googleSheetsFetch(path, options = {}) {
+  if (!sheetAccessToken) {
+    throw new Error('Google Sheets access token is not available.');
+  }
+
+  const response = await fetch(path, {
+    ...options,
+    headers: {
+      Authorization: `Bearer ${sheetAccessToken}`,
+      'Content-Type': 'application/json',
+      ...(options.headers || {})
+    }
+  });
+
+  const payload = await response.json().catch(() => null);
+  if (!response.ok) {
+    throw new Error(payload?.error?.message || `Google Sheets request failed with status ${response.status}`);
+  }
+
+  return payload;
+}
+
+async function getSpreadsheetMetadata() {
+  const spreadsheetId = sheetIdInput.value.toString().trim();
+  return googleSheetsFetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}`);
+}
+
+async function validateWorkbookStructure() {
+  const metadata = await getSpreadsheetMetadata();
+  const sheets = metadata.sheets || [];
+  if (sheets.length === 0) {
+    throw new Error('Workbook is empty. Please export first to create the required sheets.');
+  }
+
+  const existingSheetNames = sheets.map((sheet) => sheet.properties.title);
+  const missingSheets = Object.keys(SHEET_SPECS).filter((sheetName) => !existingSheetNames.includes(sheetName));
+  if (missingSheets.length > 0) {
+    throw new Error(`Workbook is missing required sheets: ${missingSheets.join(', ')}`);
+  }
+
+  for (const [sheetName, expectedColumns] of Object.entries(SHEET_SPECS)) {
+    const valuesResponse = await googleSheetsFetch(`https://sheets.googleapis.com/v4/spreadsheets/${sheetIdInput.value.toString().trim()}/values/${encodeURIComponent(sheetName)}!1:1`);
+    const headers = (valuesResponse.values && valuesResponse.values[0]) || [];
+    const normalizedHeaders = headers.map(normalizeHeader);
+    const normalizedExpected = expectedColumns.map(normalizeHeader);
+    if (normalizedHeaders.join('|') !== normalizedExpected.join('|')) {
+      throw new Error(`Sheet ${sheetName} does not match the required columns.`);
+    }
+  }
+
+  return metadata;
+}
+
+async function createMissingSheets(sheetNames) {
+  if (sheetNames.length === 0) {
+    return;
+  }
+
+  const spreadsheetId = sheetIdInput.value.toString().trim();
+  const requests = sheetNames.map((sheetName) => ({ addSheet: { properties: { title: sheetName } } }));
+  await googleSheetsFetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}:batchUpdate`, {
+    method: 'POST',
+    body: JSON.stringify({ requests })
+  });
+}
+
+async function writeSheetRows(sheetName, rows) {
+  const spreadsheetId = sheetIdInput.value.toString().trim();
+  const encodedSheetName = encodeURIComponent(sheetName);
+  await googleSheetsFetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodedSheetName}!A1`, {
+    method: 'PUT',
+    body: JSON.stringify({ values: rows })
+  });
+}
+
+async function clearSheet(sheetName) {
+  const spreadsheetId = sheetIdInput.value.toString().trim();
+  const encodedSheetName = encodeURIComponent(sheetName);
+  await googleSheetsFetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodedSheetName}!A:Z:clear`, {
+    method: 'POST',
+    body: JSON.stringify({})
+  });
+}
+
 function canSyncWithSheet() {
   return sheetConnected && sheetIdInput.value.toString().trim() !== '';
 }
@@ -344,12 +489,34 @@ async function syncTransactionsToSheet() {
 
   updateSheetStatus('Syncing transactions to Google Sheet...', true);
   try {
-    // Placeholder for actual Google Sheets API sync logic.
-    await new Promise((resolve) => setTimeout(resolve, 500));
+    const spreadsheetId = sheetIdInput.value.toString().trim();
+    const metadata = await getSpreadsheetMetadata();
+    const existingSheets = (metadata.sheets || []).map((sheet) => sheet.properties.title);
+    const missingSheets = Object.keys(SHEET_SPECS).filter((sheetName) => !existingSheets.includes(sheetName));
+    if (missingSheets.length > 0) {
+      await createMissingSheets(missingSheets);
+    }
+
+    await Promise.all([
+      clearSheet('Dashboard'),
+      clearSheet('MasterInventory'),
+      clearSheet('Purchases'),
+      clearSheet('Usage'),
+      clearSheet('Damages')
+    ]);
+
+    await Promise.all([
+      writeSheetRows('Dashboard', getDashboardRows()),
+      writeSheetRows('MasterInventory', [SHEET_SPECS.MasterInventory, ...getMasterInventoryRows()]),
+      writeSheetRows('Purchases', [SHEET_SPECS.Purchases, ...getPurchaseRows()]),
+      writeSheetRows('Usage', [SHEET_SPECS.Usage, ...getUsageRows()]),
+      writeSheetRows('Damages', [SHEET_SPECS.Damages, ...getDamageRows()])
+    ]);
+
     lastSheetSync = new Date();
-    updateSheetStatus(`Last synced at ${lastSheetSync.toLocaleTimeString()}.`, true);
+    updateSheetStatus(`Export complete at ${lastSheetSync.toLocaleTimeString()}.`, true);
   } catch (error) {
-    updateSheetStatus(`Connection failed: ${error.message || 'Unknown error'}`, false);
+    updateSheetStatus(`Export failed: ${error.message || 'Unknown error'}`, false);
   }
 }
 
@@ -891,9 +1058,88 @@ sheetImportBtn.addEventListener('click', async () => {
     return;
   }
 
-  updateSheetStatus('Importing data from sheet...', true);
-  await new Promise((resolve) => setTimeout(resolve, 500));
-  updateSheetStatus('Import complete.', true);
+  updateSheetStatus('Validating workbook structure...', true);
+  try {
+    const metadata = await validateWorkbookStructure();
+    const sheets = metadata.sheets || [];
+    const sheetNames = sheets.map((sheet) => sheet.properties.title);
+    if (sheetNames.length === 0) {
+      throw new Error('Workbook is empty. Please export first to create the required sheets.');
+    }
+
+    const readSheetValues = async (sheetName) => {
+      const response = await googleSheetsFetch(`https://sheets.googleapis.com/v4/spreadsheets/${sheetIdInput.value.toString().trim()}/values/${encodeURIComponent(sheetName)}`);
+      return response.values || [];
+    };
+
+    const dashboardRows = await readSheetValues('Dashboard');
+    const masterInventoryRows = await readSheetValues('MasterInventory');
+    const purchaseRows = await readSheetValues('Purchases');
+    const usageRows = await readSheetValues('Usage');
+    const damageRows = await readSheetValues('Damages');
+
+    if (dashboardRows.length < 2 || masterInventoryRows.length < 2 || purchaseRows.length < 2 || usageRows.length < 2 || damageRows.length < 2) {
+      throw new Error('The workbook is present but does not contain records yet. Export first to populate the sheets.');
+    }
+
+    const importedItems = masterInventoryRows.slice(1).map((row, index) => ({
+      id: Date.now() + index,
+      name: row[1] || `Imported item ${index + 1}`,
+      category: row[0] || 'General',
+      openingStock: Number(row[3] || 0),
+      price: Number(row[6] || 0),
+      minStock: Number(row[4] || 0),
+      reorderQty: Number(row[5] || 0),
+      unit: (row[2] || 'units').toString().trim().toLowerCase(),
+      storage: row[7] || 'Unassigned',
+      tags: row[9] || '',
+      notes: row[10] || ''
+    }));
+
+    const importedItemMap = new Map(importedItems.map((item) => [item.name.toLowerCase(), item]));
+    const importedPurchases = purchaseRows.slice(1).map((row, index) => ({
+      id: Date.now() + index + 10000,
+      date: row[0] || '',
+      itemId: importedItemMap.get((row[1] || '').toString().trim().toLowerCase())?.id || 0,
+      unit: (row[2] || '').toString().trim().toLowerCase(),
+      quantity: Number(row[3] || 0),
+      cost: Number(row[4] || 0),
+      note: row[5] || ''
+    })).filter((purchase) => purchase.itemId !== 0);
+
+    const importedUsages = usageRows.slice(1).map((row, index) => ({
+      id: Date.now() + index + 20000,
+      date: row[0] || '',
+      itemId: importedItemMap.get((row[1] || '').toString().trim().toLowerCase())?.id || 0,
+      unit: (row[2] || '').toString().trim().toLowerCase(),
+      quantity: Number(row[3] || 0),
+      room: row[5] || '',
+      note: row[4] || ''
+    })).filter((usage) => usage.itemId !== 0);
+
+    const importedDamages = damageRows.slice(1).map((row, index) => ({
+      id: Date.now() + index + 30000,
+      date: row[0] || '',
+      itemId: importedItemMap.get((row[1] || '').toString().trim().toLowerCase())?.id || 0,
+      quantity: Number(row[2] || 0),
+      location: row[4] || '',
+      description: row[3] || ''
+    })).filter((damage) => damage.itemId !== 0);
+
+    items = importedItems;
+    purchases = importedPurchases;
+    usages = importedUsages;
+    damages = importedDamages;
+    saveState();
+    render();
+    resetForm();
+    resetPurchaseForm();
+    resetUsageForm();
+    resetDamageForm();
+    updateSheetStatus(`Import complete: ${items.length} items, ${purchases.length} purchases, ${usages.length} usages, ${damages.length} damages.`, true);
+  } catch (error) {
+    updateSheetStatus(`Import failed: ${error.message || 'Unknown error'}`, false);
+  }
 });
 
 sheetExportBtn.addEventListener('click', async () => {
@@ -906,16 +1152,35 @@ sheetExportBtn.addEventListener('click', async () => {
 });
 
 inventoryList.addEventListener('click', (event) => {
-  items = initialItems.map((item) => ({ ...item }));
-  purchases = initialPurchases.map((purchase) => ({ ...purchase }));
-  usages = initialUsages.map((usage) => ({ ...usage }));
-  damages = initialDamages.map((damage) => ({ ...damage }));
-  saveState();
-  render();
-  resetForm();
-  resetPurchaseForm();
-  resetUsageForm();
-  resetDamageForm();
+  const target = event.target.closest('button[data-action]');
+  if (!target) return;
+
+  const itemId = Number(target.dataset.id);
+  const action = target.dataset.action;
+
+  if (action === 'edit') {
+    const itemToEdit = items.find((item) => item.id === itemId);
+    if (itemToEdit) {
+      populateForm(itemToEdit);
+    }
+    return;
+  }
+
+  if (action === 'delete') {
+    const itemToDelete = items.find((item) => item.id === itemId);
+    if (!itemToDelete) return;
+    if (hasTransactions(itemId)) {
+      window.alert(`Cannot delete ${itemToDelete.name} because it has purchase, usage, or damage records.`);
+      return;
+    }
+
+    const confirmed = window.confirm(`Delete ${itemToDelete.name}? This will permanently remove the item.`);
+    if (!confirmed) return;
+
+    items = items.filter((item) => item.id !== itemId);
+    saveState();
+    render();
+  }
 });
 
 resetForm();
