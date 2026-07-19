@@ -50,6 +50,7 @@ Features:
         Note
         Room
 - Damage Tracker
+    For tracking damaged items
     - Columns/Attibutes
         Date
         ItemName

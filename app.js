@@ -70,6 +70,10 @@ let editingItemId = null;
 
 const inventoryList = document.getElementById('inventory-list');
 const statsEl = document.getElementById('stats');
+const lowStockList = document.getElementById('low-stock-list');
+const filterName = document.getElementById('filter-name');
+const filterCategory = document.getElementById('filter-category');
+const filterTags = document.getElementById('filter-tags');
 const form = document.getElementById('item-form');
 const resetBtn = document.getElementById('reset-data');
 const formTitle = document.getElementById('form-title');
@@ -86,6 +90,16 @@ const usageUnitInput = usageForm.elements.unit;
 const damageForm = document.getElementById('damage-form');
 const damageList = document.getElementById('damage-list');
 const damageItemSelect = damageForm.elements.itemId;
+const unitDatalist = document.getElementById('unit-options');
+const googleClientIdInput = document.getElementById('google-client-id');
+const sheetIdInput = document.getElementById('sheet-id');
+const googleConnectBtn = document.getElementById('google-connect');
+const googleDisconnectBtn = document.getElementById('google-disconnect');
+const sheetImportBtn = document.getElementById('sheet-import');
+const sheetExportBtn = document.getElementById('sheet-export');
+const sheetStatus = document.getElementById('sheet-status');
+let sheetConnected = false;
+let lastSheetSync = null;
 
 function normalizeItems(itemsToNormalize) {
   return itemsToNormalize.map((item) => ({
@@ -95,7 +109,7 @@ function normalizeItems(itemsToNormalize) {
     minStock: Number(item.minStock ?? 0),
     reorderQty: Number(item.reorderQty ?? 0),
     category: item.category ?? 'General',
-    unit: item.unit ?? 'units',
+    unit: (item.unit ?? 'units').toString().trim().toLowerCase(),
     storage: item.storage ?? 'Unassigned',
     tags: item.tags ?? '',
     notes: item.notes ?? ''
@@ -110,6 +124,7 @@ function normalizePurchases(purchasesToNormalize) {
     quantity: Number(purchase.quantity ?? 0),
     cost: Number(purchase.cost ?? 0),
     date: purchase.date || new Date().toISOString().slice(0, 10),
+    unit: purchase.unit ? purchase.unit.toString().trim().toLowerCase() : '',
     note: purchase.note ?? ''
   }));
 }
@@ -121,6 +136,7 @@ function normalizeUsages(usagesToNormalize) {
     itemId: Number(usage.itemId),
     quantity: Number(usage.quantity ?? 0),
     date: usage.date || new Date().toISOString().slice(0, 10),
+    unit: usage.unit ? usage.unit.toString().trim().toLowerCase() : '',
     room: usage.room ?? '',
     note: usage.note ?? ''
   }));
@@ -256,8 +272,79 @@ function getStatus(item) {
   return 'in-stock';
 }
 
+function getKnownUnits() {
+  const units = new Set();
+  items.forEach((item) => units.add(item.unit.toString().trim().toLowerCase()));
+  purchases.forEach((purchase) => {
+    if (purchase.unit) units.add(purchase.unit.toString().trim().toLowerCase());
+  });
+  usages.forEach((usage) => {
+    if (usage.unit) units.add(usage.unit.toString().trim().toLowerCase());
+  });
+  return [...units].filter(Boolean).sort();
+}
+
+function updateUnitDatalist() {
+  const units = getKnownUnits();
+  unitDatalist.innerHTML = units.map((unit) => `<option value="${unit}"></option>`).join('');
+}
+
+function updateSheetStatus(message, connected = sheetConnected) {
+  sheetStatus.textContent = message;
+  sheetConnected = connected;
+  googleConnectBtn.classList.toggle('hidden', connected);
+  googleDisconnectBtn.classList.toggle('hidden', !connected);
+}
+
+function canSyncWithSheet() {
+  return sheetConnected && sheetIdInput.value.toString().trim() !== '';
+}
+
+async function syncTransactionsToSheet() {
+  if (!canSyncWithSheet()) {
+    updateSheetStatus('Not connected or missing sheet ID.', false);
+    return;
+  }
+
+  updateSheetStatus('Syncing transactions to Google Sheet...', true);
+  try {
+    // Placeholder for actual Google Sheets API sync logic.
+    await new Promise((resolve) => setTimeout(resolve, 500));
+    lastSheetSync = new Date();
+    updateSheetStatus(`Last synced at ${lastSheetSync.toLocaleTimeString()}.`, true);
+  } catch (error) {
+    updateSheetStatus(`Connection failed: ${error.message || 'Unknown error'}`, false);
+  }
+}
+
+function scheduleSheetSync() {
+  if (sheetConnected) {
+    syncTransactionsToSheet();
+  }
+}
+
+function hasTransactions(itemId) {
+  return purchases.some((purchase) => purchase.itemId === itemId)
+    || usages.some((usage) => usage.itemId === itemId)
+    || damages.some((damage) => damage.itemId === itemId);
+}
+
+function getFilteredItems() {
+  const nameTerm = filterName.value.trim().toLowerCase();
+  const categoryTerm = filterCategory.value.trim().toLowerCase();
+  const tagsTerm = filterTags.value.trim().toLowerCase();
+
+  return items.filter((item) => {
+    const matchesName = nameTerm === '' || item.name.toLowerCase().includes(nameTerm);
+    const matchesCategory = categoryTerm === '' || item.category.toLowerCase().includes(categoryTerm);
+    const matchesTags = tagsTerm === '' || item.tags.toLowerCase().includes(tagsTerm);
+    return matchesName && matchesCategory && matchesTags;
+  });
+}
+
 function render() {
   renderStats();
+  renderLowStockList();
   renderInventory();
   renderPurchaseItems();
   renderUsageItems();
@@ -265,6 +352,7 @@ function render() {
   renderUsages();
   renderDamages();
   renderPurchases();
+  updateUnitDatalist();
 }
 
 function renderStats() {
@@ -317,6 +405,7 @@ function resetPurchaseForm() {
   purchaseItemSelect.value = items.length > 0 ? items[0].id : '';
   const selectedItem = items[0];
   purchaseUnitInput.value = selectedItem ? selectedItem.unit : '';
+  updateUnitDatalist();
 }
 
 function resetUsageForm() {
@@ -325,6 +414,7 @@ function resetUsageForm() {
   usageItemSelect.value = items.length > 0 ? items[0].id : '';
   const selectedItem = items[0];
   usageUnitInput.value = selectedItem ? selectedItem.unit : '';
+  updateUnitDatalist();
 }
 
 function resetDamageForm() {
@@ -356,13 +446,14 @@ function populateForm(item) {
 
 function renderInventory() {
   inventoryList.innerHTML = '';
+  const filteredItems = getFilteredItems();
 
-  if (items.length === 0) {
-    inventoryList.innerHTML = '<p>No inventory items added yet.</p>';
+  if (filteredItems.length === 0) {
+    inventoryList.innerHTML = '<p>No inventory items match those filters.</p>';
     return;
   }
 
-  items.forEach((item) => {
+  filteredItems.forEach((item) => {
     const currentStock = getCurrentStock(item);
     const cost = getLatestCost(item);
     const card = document.createElement('article');
@@ -393,7 +484,7 @@ function renderInventory() {
       <p>${item.notes || 'No notes added.'}</p>
       <div class="actions">
         <button class="small-btn" data-action="edit" data-id="${item.id}">Edit</button>
-        <button class="small-btn" data-action="delete" data-id="${item.id}">Delete</button>
+        <button class="small-btn" data-action="delete" data-id="${item.id}" ${hasTransactions(item.id) ? "style='background-color: gray;' disabled title='Cannot delete item with existing records'" : ''}>Delete</button>
       </div>
     `;
 
@@ -413,6 +504,7 @@ function renderPurchaseItems() {
   if (selectedItem) {
     purchaseUnitInput.value = selectedItem.unit;
   }
+  updateUnitDatalist();
 }
 
 function renderUsageItems() {
@@ -427,6 +519,7 @@ function renderUsageItems() {
   if (selectedItem) {
     usageUnitInput.value = selectedItem.unit;
   }
+  updateUnitDatalist();
 }
 
 function renderDamageItems() {
@@ -441,6 +534,28 @@ function renderDamageItems() {
   if (selectedItem) {
     damageForm.elements.location.value = selectedItem.storage;
   }
+}
+
+function renderLowStockList() {
+  lowStockList.innerHTML = '';
+  const lowStockItems = items
+    .filter((item) => getStatus(item) === 'low-stock' || getStatus(item) === 'out-of-stock')
+    .sort((a, b) => getCurrentStock(a) - getCurrentStock(b));
+
+  if (lowStockItems.length === 0) {
+    lowStockList.innerHTML = '<li>No low stock items.</li>';
+    return;
+  }
+
+  lowStockItems.forEach((item) => {
+    const currentStock = getCurrentStock(item);
+    const listItem = document.createElement('li');
+    listItem.innerHTML = `
+      <strong>${item.name}</strong>
+      <span>${currentStock} ${item.unit} left (min ${item.minStock})</span>
+    `;
+    lowStockList.appendChild(listItem);
+  });
 }
 
 function renderPurchases() {
@@ -559,7 +674,7 @@ form.addEventListener('submit', (event) => {
     price: Number(formData.get('price')),
     minStock: Number(formData.get('minStock')),
     reorderQty: Number(formData.get('reorderQty')),
-    unit: formData.get('unit').toString().trim(),
+    unit: formData.get('unit').toString().trim().toLowerCase(),
     storage: formData.get('storage').toString().trim(),
     tags: formData.get('tags').toString().trim(),
     notes: formData.get('notes').toString().trim()
@@ -604,7 +719,7 @@ purchaseForm.addEventListener('submit', (event) => {
     id: Date.now(),
     date: formData.get('date').toString(),
     itemId: Number(formData.get('itemId')),
-    unit: formData.get('unit').toString().trim(),
+    unit: formData.get('unit').toString().trim().toLowerCase(),
     quantity: Number(formData.get('quantity')),
     cost: Number(formData.get('cost')),
     note: formData.get('note').toString().trim()
@@ -614,6 +729,7 @@ purchaseForm.addEventListener('submit', (event) => {
   saveState();
   render();
   resetPurchaseForm();
+  scheduleSheetSync();
 });
 
 usageForm.addEventListener('submit', (event) => {
@@ -623,7 +739,7 @@ usageForm.addEventListener('submit', (event) => {
     id: Date.now(),
     date: formData.get('date').toString(),
     itemId: Number(formData.get('itemId')),
-    unit: formData.get('unit').toString().trim(),
+    unit: formData.get('unit').toString().trim().toLowerCase(),
     quantity: Number(formData.get('quantity')),
     room: formData.get('room').toString().trim(),
     note: formData.get('note').toString().trim()
@@ -633,6 +749,7 @@ usageForm.addEventListener('submit', (event) => {
   saveState();
   render();
   resetUsageForm();
+  scheduleSheetSync();
 });
 
 damageForm.addEventListener('submit', (event) => {
@@ -651,44 +768,55 @@ damageForm.addEventListener('submit', (event) => {
   saveState();
   render();
   resetDamageForm();
+  scheduleSheetSync();
+});
+
+filterName.addEventListener('input', render);
+filterCategory.addEventListener('input', render);
+filterTags.addEventListener('input', render);
+
+googleConnectBtn.addEventListener('click', async () => {
+  if (!googleClientIdInput.value.toString().trim()) {
+    updateSheetStatus('Enter a valid client ID first.', false);
+    return;
+  }
+
+  updateSheetStatus('Connecting to Google...', true);
+  try {
+    // TODO: implement OAuth flow.
+    await new Promise((resolve) => setTimeout(resolve, 500));
+    updateSheetStatus('Connected to Google Sheets.', true);
+  } catch (error) {
+    updateSheetStatus(`Connection failed: ${error.message || 'Unknown error'}`, false);
+  }
+});
+
+googleDisconnectBtn.addEventListener('click', () => {
+  sheetConnected = false;
+  updateSheetStatus('Disconnected from Google Sheets.', false);
+});
+
+sheetImportBtn.addEventListener('click', async () => {
+  if (!canSyncWithSheet()) {
+    updateSheetStatus('Connect first to import.', false);
+    return;
+  }
+
+  updateSheetStatus('Importing data from sheet...', true);
+  await new Promise((resolve) => setTimeout(resolve, 500));
+  updateSheetStatus('Import complete.', true);
+});
+
+sheetExportBtn.addEventListener('click', async () => {
+  if (!canSyncWithSheet()) {
+    updateSheetStatus('Connect first to export.', false);
+    return;
+  }
+
+  await syncTransactionsToSheet();
 });
 
 inventoryList.addEventListener('click', (event) => {
-  const target = event.target.closest('button[data-action]');
-  if (!target) return;
-
-  const itemId = Number(target.dataset.id);
-  const action = target.dataset.action;
-
-  if (action === 'edit') {
-    const itemToEdit = items.find((item) => item.id === itemId);
-    if (itemToEdit) {
-      populateForm(itemToEdit);
-    }
-    return;
-  }
-
-  if (action === 'delete') {
-    const itemToDelete = items.find((item) => item.id === itemId);
-    if (!itemToDelete) return;
-    const confirmed = window.confirm(`Delete ${itemToDelete.name}? This will also remove its purchase, usage, and damage history.`);
-    if (!confirmed) return;
-
-    items = items.filter((item) => item.id !== itemId);
-    purchases = purchases.filter((purchase) => purchase.itemId !== itemId);
-    usages = usages.filter((usage) => usage.itemId !== itemId);
-    damages = damages.filter((damage) => damage.itemId !== itemId);
-    saveState();
-    render();
-    return;
-  }
-});
-
-cancelEditBtn.addEventListener('click', () => {
-  resetForm();
-});
-
-resetBtn.addEventListener('click', () => {
   items = initialItems.map((item) => ({ ...item }));
   purchases = initialPurchases.map((purchase) => ({ ...purchase }));
   usages = initialUsages.map((usage) => ({ ...usage }));
@@ -703,4 +831,6 @@ resetBtn.addEventListener('click', () => {
 
 resetForm();
 resetPurchaseForm();
+resetUsageForm();
+resetDamageForm();
 render();

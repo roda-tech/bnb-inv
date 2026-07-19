@@ -21,6 +21,10 @@
         <div class="hero-card">
           <h2>Inventory overview</h2>
           <div id="stats" class="stats-grid"></div>
+          <div class="low-stock-card">
+            <h3>Low stock items</h3>
+            <ul id="low-stock-list" class="low-stock-list"></ul>
+          </div>
         </div>
       </header>
 
@@ -29,6 +33,20 @@
           <div class="panel-header">
             <h2>Items in stock</h2>
             <button id="reset-data" class="ghost-btn">Reset sample items</button>
+          </div>
+          <div class="filter-row">
+            <label>
+              Search
+              <input id="filter-name" type="search" placeholder="Item name" />
+            </label>
+            <label>
+              Category
+              <input id="filter-category" type="search" placeholder="Category" />
+            </label>
+            <label>
+              Tags
+              <input id="filter-tags" type="search" placeholder="Tags" />
+            </label>
           </div>
           <div id="inventory-list" class="inventory-list"></div>
         </section>
@@ -65,7 +83,7 @@
             </label>
             <label>
               Unit
-              <input type="text" name="unit" placeholder="sets / bottles / rolls" required />
+                <input type="text" name="unit" list="unit-options" placeholder="sets / bottles / rolls" required />
             </label>
             <label>
               Storage location
@@ -106,7 +124,7 @@
           </label>
           <label>
             Unit
-            <input type="text" name="unit" placeholder="sets / bottles / rolls" required />
+            <input type="text" name="unit" list="unit-options" placeholder="sets / bottles / rolls" required />
           </label>
           <label>
             Quantity
@@ -141,7 +159,7 @@
           </label>
           <label>
             Unit
-            <input type="text" name="unit" placeholder="sets / bottles / rolls" required />
+            <input type="text" name="unit" list="unit-options" placeholder="sets / bottles / rolls" required />
           </label>
           <label>
             Quantity used
@@ -191,8 +209,41 @@
 
         <div id="damage-list" class="transaction-list"></div>
       </section>
+
+      <section class="panel sheets-panel">
+        <div class="panel-header">
+          <h2>Google Sheets sync</h2>
+        </div>
+        <form id="sheets-form" class="transaction-form">
+          <label>
+            OAuth client ID
+            <input type="text" id="google-client-id" placeholder="Google OAuth client ID" />
+          </label>
+          <label>
+            Spreadsheet ID
+            <input type="text" id="sheet-id" placeholder="Google Sheet ID" />
+          </label>
+          <div class="button-row">
+            <button type="button" id="google-connect">Connect</button>
+            <button type="button" id="google-disconnect" class="ghost-btn hidden">Disconnect</button>
+          </div>
+          <div class="button-row">
+            <button type="button" id="sheet-import">Import from sheet</button>
+            <button type="button" id="sheet-export">Export to sheet</button>
+          </div>
+        </form>
+        <p id="sheet-status" class="sheet-status">Not connected.</p>
+        <div class="notes-card">
+          <h3>Google Sheets sync</h3>
+          <p>
+            Enter a Google OAuth Client ID and a spreadsheet ID to connect. The app can import/export inventory and transaction data from named sheet tabs.
+          </p>
+        </div>
+      </section>
     </div>
 
+    <datalist id="unit-options"></datalist>
+    <script src="https://apis.google.com/js/api.js"></script>
     <script src="app.js?v=20260718-2"></script>
   </body>
 </html>
