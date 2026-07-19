@@ -474,7 +474,8 @@ async function createMissingSheets(sheetNames) {
 async function writeSheetRows(sheetName, rows) {
   const spreadsheetId = getSpreadsheetId();
   const encodedSheetName = encodeURIComponent(sheetName);
-  await googleSheetsFetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodedSheetName}!A1?valueInputOption=RAW`, {
+  const path = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodedSheetName}!A1?valueInputOption=RAW`;
+  await googleSheetsFetch(path, {
     method: 'PUT',
     body: JSON.stringify({ values: rows })
   });
