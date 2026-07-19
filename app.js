@@ -476,11 +476,7 @@ async function writeSheetRows(sheetName, rows) {
   const encodedSheetName = encodeURIComponent(sheetName);
   await googleSheetsFetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodedSheetName}!A1?valueInputOption=RAW`, {
     method: 'PUT',
-    body: JSON.stringify({
-      range: `${sheetName}!A1`,
-      majorDimension: 'ROWS',
-      values: rows
-    })
+    body: JSON.stringify({ values: rows })
   });
 }
 
