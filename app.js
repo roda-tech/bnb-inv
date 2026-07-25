@@ -2,61 +2,10 @@ const STORAGE_KEY = 'bnb-inventory-manager';
 const PURCHASES_KEY = 'bnb-inventory-manager-purchases';
 const USAGE_KEY = 'bnb-inventory-manager-usage';
 const DAMAGE_KEY = 'bnb-inventory-manager-damage';
+const SHEET_SETTINGS_KEY = 'bnb-inventory-sheet-settings';
+const SHEET_TOKEN_KEY = 'bnb-inventory-sheet-token';
 
-const initialItems = [
-  {
-    id: 1,
-    name: 'Bed sheets',
-    category: 'Linen',
-    openingStock: 24,
-    price: 18.5,
-    minStock: 12,
-    reorderQty: 12,
-    unit: 'sets',
-    storage: '1801-1804',
-    tags: 'bed,linen',
-    notes: 'Keep 2 extra sets for turnover'
-  },
-  {
-    id: 2,
-    name: 'Detergent',
-    category: 'Cleaning',
-    openingStock: 6,
-    price: 7.25,
-    minStock: 4,
-    reorderQty: 6,
-    unit: 'bottles',
-    storage: 'Housekeeping closet',
-    tags: 'cleaning,soap',
-    notes: 'Order before weekend check-ins'
-  },
-  {
-    id: 3,
-    name: 'Toilet paper',
-    category: 'Restroom',
-    openingStock: 3,
-    price: 1.8,
-    minStock: 6,
-    reorderQty: 12,
-    unit: 'rolls',
-    storage: '1802',
-    tags: 'restroom,essentials',
-    notes: 'High use item'
-  },
-  {
-    id: 4,
-    name: 'Hand soap',
-    category: 'Restroom',
-    openingStock: 8,
-    price: 3.4,
-    minStock: 4,
-    reorderQty: 8,
-    unit: 'bottles',
-    storage: '1803',
-    tags: 'restroom,cleaning',
-    notes: 'Refill during room prep'
-  }
-];
+const initialItems = [];
 
 const initialPurchases = [];
 const initialUsages = [];
@@ -75,8 +24,8 @@ const filterName = document.getElementById('filter-name');
 const filterCategory = document.getElementById('filter-category');
 const filterTags = document.getElementById('filter-tags');
 const form = document.getElementById('item-form');
-const resetBtn = document.getElementById('reset-data');
 const formTitle = document.getElementById('form-title');
+const googleSyncSettingsBtn = document.getElementById('google-sync-settings');
 const cancelEditBtn = document.getElementById('cancel-edit');
 const submitBtn = form.querySelector('button[type="submit"]');
 const purchaseForm = document.getElementById('purchase-form');
@@ -234,6 +183,31 @@ function saveState() {
   localStorage.setItem(PURCHASES_KEY, JSON.stringify(purchases));
   localStorage.setItem(USAGE_KEY, JSON.stringify(usages));
   localStorage.setItem(DAMAGE_KEY, JSON.stringify(damages));
+}
+
+function loadSheetSettings() {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(SHEET_SETTINGS_KEY) || '{}');
+    return {
+      sheetId: parsed.sheetId || '',
+      connected: Boolean(parsed.connected)
+    };
+  } catch (error) {
+    return { sheetId: '', connected: false };
+  }
+}
+
+function persistSheetSettings() {
+  localStorage.setItem(SHEET_SETTINGS_KEY, JSON.stringify({
+    sheetId: getSpreadsheetId(),
+    connected: sheetConnected
+  }));
+
+  if (sheetAccessToken) {
+    localStorage.setItem(SHEET_TOKEN_KEY, sheetAccessToken);
+  } else {
+    localStorage.removeItem(SHEET_TOKEN_KEY);
+  }
 }
 
 function getPurchaseQuantity(item) {
@@ -907,6 +881,7 @@ form.addEventListener('submit', (event) => {
   saveState();
   render();
   resetForm();
+  scheduleSheetSync();
 });
 
 purchaseItemSelect.addEventListener('change', () => {
@@ -993,7 +968,21 @@ filterName.addEventListener('input', render);
 filterCategory.addEventListener('input', render);
 filterTags.addEventListener('input', render);
 
-googleConnectBtn.addEventListener('click', async () => {
+async function openGoogleSyncSettings() {
+  const currentSheetId = sheetIdInput.value.toString().trim();
+  const nextSheetId = window.prompt('Enter the Google Sheet ID to sync with', currentSheetId);
+  if (!nextSheetId) {
+    return;
+  }
+
+  sheetIdInput.value = nextSheetId.trim();
+  persistSheetSettings();
+  await connectGoogleSheets();
+}
+
+googleSyncSettingsBtn.addEventListener('click', openGoogleSyncSettings);
+
+async function connectGoogleSheets() {
   const clientId = GOOGLE_CLIENT_ID;
   const spreadsheetId = getSpreadsheetId();
 
@@ -1009,7 +998,7 @@ googleConnectBtn.addEventListener('click', async () => {
     const scope = 'https://www.googleapis.com/auth/spreadsheets.readonly https://www.googleapis.com/auth/spreadsheets';
     const authUrl = new URL('https://accounts.google.com/o/oauth2/v2/auth');
     authUrl.searchParams.set('client_id', clientId);
-    authUrl.searchParams.set('redirect_uri', `${window.location.origin}${window.location.pathname}`);
+    authUrl.searchParams.set('redirect_uri', `${window.location.origin}/oauth-callback.html`);
     authUrl.searchParams.set('response_type', 'token');
     authUrl.searchParams.set('scope', scope);
     authUrl.searchParams.set('include_granted_scopes', 'true');
@@ -1048,21 +1037,29 @@ googleConnectBtn.addEventListener('click', async () => {
     });
 
     sheetAccessToken = authResult.accessToken || null;
+    persistSheetSettings();
     updateSheetStatus(`Connected: ${authResult.message || 'Google OAuth completed successfully.'}`, true);
+    if (sheetAccessToken) {
+      await importFromSheet();
+    }
   } catch (error) {
     sheetAccessToken = null;
+    persistSheetSettings();
     updateSheetStatus(`Connection failed: ${error.message || 'Unknown error'}`, false);
   }
-});
+}
+
+googleConnectBtn.addEventListener('click', connectGoogleSheets);
 
 googleDisconnectBtn.addEventListener('click', () => {
   sheetConnected = false;
   sheetAccessToken = null;
   sheetAuthState = null;
+  persistSheetSettings();
   updateSheetStatus('Disconnected from Google Sheets.', false);
 });
 
-sheetImportBtn.addEventListener('click', async () => {
+async function importFromSheet() {
   if (!canSyncWithSheet()) {
     updateSheetStatus('Connect first to import.', false);
     return;
@@ -1078,10 +1075,10 @@ sheetImportBtn.addEventListener('click', async () => {
     }
 
     const readSheetValues = async (sheetName) => {
-    const spreadsheetId = getSpreadsheetId();
-    const response = await googleSheetsFetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(sheetName)}`);
-    return response.values || [];
-  };
+      const spreadsheetId = getSpreadsheetId();
+      const response = await googleSheetsFetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(sheetName)}`);
+      return response.values || [];
+    };
 
     const dashboardRows = await readSheetValues('Dashboard');
     const masterInventoryRows = await readSheetValues('MasterInventory');
@@ -1151,7 +1148,7 @@ sheetImportBtn.addEventListener('click', async () => {
   } catch (error) {
     updateSheetStatus(`Import failed: ${error.message || 'Unknown error'}`, false);
   }
-});
+}
 
 sheetExportBtn.addEventListener('click', async () => {
   if (!canSyncWithSheet()) {
@@ -1191,6 +1188,7 @@ inventoryList.addEventListener('click', (event) => {
     items = items.filter((item) => item.id !== itemId);
     saveState();
     render();
+    scheduleSheetSync();
   }
 });
 
@@ -1199,4 +1197,25 @@ resetPurchaseForm();
 resetUsageForm();
 resetDamageForm();
 render();
-window.addEventListener('load', handleGoogleOAuthRedirect);
+
+async function initializeGoogleSync() {
+  const savedSettings = loadSheetSettings();
+  if (savedSettings.sheetId) {
+    sheetIdInput.value = savedSettings.sheetId;
+  }
+
+  const savedToken = localStorage.getItem(SHEET_TOKEN_KEY);
+  if (savedToken) {
+    sheetAccessToken = savedToken;
+    sheetConnected = true;
+    updateSheetStatus('Restoring Google Sheets connection...', true);
+    await importFromSheet();
+  } else if (savedSettings.sheetId) {
+    updateSheetStatus('Google Sheets ready. Connect to sync.', true);
+  }
+}
+
+window.addEventListener('load', async () => {
+  handleGoogleOAuthRedirect();
+  await initializeGoogleSync();
+});

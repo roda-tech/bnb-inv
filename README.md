@@ -59,4 +59,21 @@ Features:
         Description
         Location
 
+Remaining Item:
+- Improve UI
+    - standardize comboboxes
+    - spacing between forms is too narrow
+    - wide empty space on the initial view for wide screens
+    - color scheme is too plain
+
+
+- Remove reset sample button and replace with Google Sync setting button, on click, ask for the Sheet ID then proceed with the new google sync logic.  
+- Improve google sheet synching
+- - is it possible to only connect your account and google once? then no need to reconnect on refresh?
+- - - if already connected then on refresh auto synch with current sheet.
+- - sync sheet data with current data on Save Item / Record purchase, usage and damage
+
+
+Prompt on improvement
+- Remove reset sample button and sample data. Then replace the button with Google Sync setting button, on click, ask for the Sheet ID then proceed with the new google sync logic.  The new google sync logic should have the user to only connect their account and set google sheet id once. On page load, load the data from the sheet, then on transactions (Save item, Record purchase, Record usage and Record Damage) data should be updated on the sheet accordingly, it should also synchronize with the master inventory list based on the transanction. 
 
