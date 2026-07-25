@@ -859,8 +859,21 @@ function renderDamages() {
 form.addEventListener('submit', (event) => {
   event.preventDefault();
   const formData = new FormData(form);
+  const name = formData.get('name').toString().trim();
+
+  if (!name) {
+    window.alert('Item name is required.');
+    return;
+  }
+
+  const duplicateItem = items.find((item) => item.name.toLowerCase() === name.toLowerCase() && item.id !== editingItemId);
+  if (duplicateItem) {
+    window.alert('Item name must be unique. Please choose a different name.');
+    return;
+  }
+
   const updatedValues = {
-    name: formData.get('name').toString().trim(),
+    name,
     category: formData.get('category').toString().trim(),
     openingStock: Number(formData.get('openingStock')),
     price: Number(formData.get('price')),
