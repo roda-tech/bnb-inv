@@ -26,8 +26,9 @@ input {
 }
 
 .hero {
-  display: grid;
-  grid-template-columns: 2fr 1fr;
+  /* display: grid;
+  grid-template-columns: 2fr 1fr; */
+  display: flex;
   gap: 24px;
   align-items: start;
   margin-bottom: 24px;
