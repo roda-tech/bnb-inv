@@ -91,13 +91,14 @@ const damageForm = document.getElementById('damage-form');
 const damageList = document.getElementById('damage-list');
 const damageItemSelect = damageForm.elements.itemId;
 const unitDatalist = document.getElementById('unit-options');
-const googleClientIdInput = document.getElementById('google-client-id');
 const sheetIdInput = document.getElementById('sheet-id');
 const googleConnectBtn = document.getElementById('google-connect');
 const googleDisconnectBtn = document.getElementById('google-disconnect');
 const sheetImportBtn = document.getElementById('sheet-import');
 const sheetExportBtn = document.getElementById('sheet-export');
 const sheetStatus = document.getElementById('sheet-status');
+const GOOGLE_CLIENT_ID = '619005833964-795a62342hefkqc9t3qv4afmb8clia5e.apps.googleusercontent.com';
+
 let sheetConnected = false;
 let sheetAccessToken = null;
 let sheetAuthState = null;
@@ -993,13 +994,8 @@ filterCategory.addEventListener('input', render);
 filterTags.addEventListener('input', render);
 
 googleConnectBtn.addEventListener('click', async () => {
-  const clientId = googleClientIdInput.value.toString().trim();
+  const clientId = GOOGLE_CLIENT_ID;
   const spreadsheetId = getSpreadsheetId();
-
-  if (!clientId) {
-    updateSheetStatus('Enter a valid client ID first.', false);
-    return;
-  }
 
   if (!spreadsheetId) {
     updateSheetStatus('Enter a spreadsheet ID first.', false);
