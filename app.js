@@ -1009,7 +1009,7 @@ googleConnectBtn.addEventListener('click', async () => {
     const scope = 'https://www.googleapis.com/auth/spreadsheets.readonly https://www.googleapis.com/auth/spreadsheets';
     const authUrl = new URL('https://accounts.google.com/o/oauth2/v2/auth');
     authUrl.searchParams.set('client_id', clientId);
-    authUrl.searchParams.set('redirect_uri', `${window.location.origin}/${window.location.pathname}`);
+    authUrl.searchParams.set('redirect_uri', `${window.location.origin}${window.location.pathname}`);
     authUrl.searchParams.set('response_type', 'token');
     authUrl.searchParams.set('scope', scope);
     authUrl.searchParams.set('include_granted_scopes', 'true');
