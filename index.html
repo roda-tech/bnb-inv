@@ -5,241 +5,413 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0" />
     <meta http-equiv="Pragma" content="no-cache" />
-    <title>BNB Inventory Manager</title>
-    <link rel="stylesheet" href="styles.css?v=20260718-2" />
+    <title>BNB Inventory Manager - Bed & Breakfast Operations</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="styles.css?v=20260728-1" />
   </head>
   <body>
+    <!-- App Shell -->
     <div class="app-shell">
-      <header class="hero">
-        <div>
-          <p class="eyebrow">Operational inventory</p>
-          <h1>Track the everyday supplies that keep your Airbnb running.</h1>
-          <p class="hero-text">
-            Add inventory items, monitor current stock, and identify what needs to be restocked before it runs out.
-          </p>
-        </div>
-        <div class="hero-card">
-          <h2>Inventory overview</h2>
-          <div id="stats" class="stats-grid"></div>
-          <div class="low-stock-card">
-            <h3>Low stock items</h3>
-            <ul id="low-stock-list" class="low-stock-list"></ul>
+      <!-- Top Navigation & Header -->
+      <header class="app-header">
+        <div class="brand">
+          <div class="brand-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+              <polyline points="9 22 9 12 15 12 15 22"></polyline>
+            </svg>
           </div>
+          <div>
+            <h1 class="brand-title">BNB Inventory Manager</h1>
+            <p class="brand-subtitle">Operational inventory & supply tracking</p>
+          </div>
+        </div>
+
+        <div class="header-actions">
+          <div id="sync-status-badge" class="sync-badge offline" title="Click to configure Google Sheets Sync">
+            <span class="badge-dot"></span>
+            <span id="sync-status-text">Sheets: Disconnected</span>
+          </div>
+          <button type="button" id="open-sync-modal-btn" class="btn btn-secondary">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="3"></circle>
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+            </svg>
+            Google Sync Settings
+          </button>
         </div>
       </header>
 
-      <main class="content-grid">
-        <section class="panel">
-          <div class="panel-header">
-            <h2>Items in stock</h2>
-            <button type="button" id="google-sync-settings" class="ghost-btn">Google Sync Settings</button>
-          </div>
-          <div class="filter-row">
-            <label>
-              Search
-              <input id="filter-name" type="search" placeholder="Item name" />
-            </label>
-            <label>
-              Category
-              <input id="filter-category" type="search" placeholder="Category" />
-            </label>
-            <label>
-              Tags
-              <input id="filter-tags" type="search" placeholder="Tags" />
-            </label>
-          </div>
-          <div id="inventory-list" class="inventory-list"></div>
-        </section>
+      <!-- Main Navigation Tabs -->
+      <nav class="nav-tabs" role="tablist" aria-label="Application Navigation">
+        <button type="button" class="nav-tab active" data-tab="tab-inventory" role="tab" aria-selected="true" aria-controls="tab-inventory">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
+          Inventory & Overview
+        </button>
+        <button type="button" class="nav-tab" data-tab="tab-purchases" role="tab" aria-selected="false" aria-controls="tab-purchases">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg>
+          Purchases
+        </button>
+        <button type="button" class="nav-tab" data-tab="tab-usage" role="tab" aria-selected="false" aria-controls="tab-usage">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+          Item Usage
+        </button>
+        <button type="button" class="nav-tab" data-tab="tab-damage" role="tab" aria-selected="false" aria-controls="tab-damage">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+          Damage Tracker
+        </button>
+      </nav>
 
-        <aside class="panel">
-          <div class="panel-header">
-            <h2 id="form-title">Add inventory item</h2>
-            <button type="button" id="cancel-edit" class="ghost-btn hidden">Cancel edit</button>
-          </div>
-          <form id="item-form" class="item-form">
-            <label>
-              Item name
-              <input type="text" name="name" placeholder="Bed sheets" required />
-            </label>
-            <label>
-              Category
-              <input type="text" name="category" placeholder="Linen" required />
-            </label>
-            <label>
-              Opening stock
-              <input type="number" name="openingStock" min="0" value="10" required />
-            </label>
-            <label>
-              Price per item (₱)
-              <input type="number" name="price" min="0" step="0.01" value="8" required />
-            </label>
-            <label>
-              Minimum stock level
-              <input type="number" name="minStock" min="0" value="5" required />
-            </label>
-            <label>
-              Reorder quantity
-              <input type="number" name="reorderQty" min="0" value="10" required />
-            </label>
-            <label>
-              Unit
-                <input type="text" name="unit" list="unit-options" placeholder="sets / bottles / rolls" required />
-            </label>
-            <label>
-              Storage location
-              <input type="text" name="storage" placeholder="1801 or linen closet" />
-            </label>
-            <label>
-              Tags
-              <input type="text" name="tags" placeholder="laundry, restroom" />
-            </label>
-            <label>
-              Notes
-              <input type="text" name="notes" placeholder="Keep extra sets for turnover" />
-            </label>
-            <button type="submit">Save item</button>
-          </form>
+      <!-- Dashboard Stats Header -->
+      <div class="stats-banner">
+        <div id="stats" class="stats-grid"></div>
+      </div>
 
-          <div class="notes-card">
-            <h3>Planning for growth</h3>
-            <p>
-              This layout is ready for purchase recording. Add stock through purchase transactions and let the app derive current inventory levels automatically.
-            </p>
-          </div>
-        </aside>
-      </main>
+      <!-- Tab Content 1: Inventory & Overview -->
+      <section id="tab-inventory" class="tab-panel active" role="tabpanel">
+        <div class="content-grid">
+          <div class="panel main-panel">
+            <div class="panel-header">
+              <div>
+                <h2>Master Inventory</h2>
+                <p class="panel-subtitle">Manage items, stock levels, and minimum thresholds</p>
+              </div>
+              <button type="button" id="trigger-add-item-btn" class="btn btn-primary">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                New Item
+              </button>
+            </div>
 
-      <section class="panel purchase-panel">
-        <div class="panel-header">
-          <h2>Purchase transactions</h2>
+            <!-- Filters -->
+            <div class="filter-card">
+              <div class="filter-row">
+                <div class="input-group">
+                  <label for="filter-name">Search Item</label>
+                  <input id="filter-name" type="search" placeholder="e.g. Bed sheets, Towels" />
+                </div>
+                <div class="input-group">
+                  <label for="filter-category">Category</label>
+                  <input id="filter-category" type="search" placeholder="e.g. Linen, Toiletries" />
+                </div>
+                <div class="input-group">
+                  <label for="filter-tags">Tags</label>
+                  <input id="filter-tags" type="search" placeholder="e.g. laundry, bathroom" />
+                </div>
+              </div>
+            </div>
+
+            <!-- Low Stock Banner Widget -->
+            <div class="low-stock-card">
+              <div class="card-header">
+                <h3>⚠️ Restock Attention Required</h3>
+                <span id="low-stock-count-badge" class="chip chip-warning">0 items</span>
+              </div>
+              <ul id="low-stock-list" class="low-stock-list"></ul>
+            </div>
+
+            <div id="inventory-list" class="inventory-grid"></div>
+          </div>
+
+          <!-- Aside: Add/Edit Item Form -->
+          <aside class="panel side-panel">
+            <div class="panel-header">
+              <div>
+                <h2 id="form-title">Add inventory item</h2>
+                <p class="panel-subtitle">Current stock is calculated from transactions</p>
+              </div>
+              <button type="button" id="cancel-edit" class="btn btn-ghost btn-sm hidden">Cancel edit</button>
+            </div>
+            <form id="item-form" class="styled-form">
+              <div class="input-group">
+                <label for="item-name-input">Item name <span class="required">*</span></label>
+                <input type="text" id="item-name-input" name="name" placeholder="Bed sheets (Queen)" required />
+              </div>
+
+              <div class="form-row">
+                <div class="input-group">
+                  <label for="item-category-input">Category <span class="required">*</span></label>
+                  <input type="text" id="item-category-input" name="category" placeholder="Linen" required />
+                </div>
+                <div class="input-group">
+                  <label for="item-unit-input">Unit <span class="required">*</span></label>
+                  <input type="text" id="item-unit-input" name="unit" list="unit-options" placeholder="sets / rolls" required />
+                </div>
+              </div>
+
+              <div class="form-row">
+                <div class="input-group">
+                  <label for="item-opening-input">Opening stock <span class="required">*</span></label>
+                  <input type="number" id="item-opening-input" name="openingStock" min="0" value="10" required />
+                </div>
+                <div class="input-group">
+                  <label for="item-price-input">Default price (₱) <span class="required">*</span></label>
+                  <input type="number" id="item-price-input" name="price" min="0" step="0.01" value="0.00" required />
+                </div>
+              </div>
+
+              <div class="form-row">
+                <div class="input-group">
+                  <label for="item-min-input">Min stock level <span class="required">*</span></label>
+                  <input type="number" id="item-min-input" name="minStock" min="0" value="5" required />
+                </div>
+                <div class="input-group">
+                  <label for="item-reorder-input">Reorder qty <span class="required">*</span></label>
+                  <input type="number" id="item-reorder-input" name="reorderQty" min="0" value="10" required />
+                </div>
+              </div>
+
+              <div class="input-group">
+                <label for="item-storage-input">Storage location</label>
+                <input type="text" id="item-storage-input" name="storage" placeholder="e.g. Closet 101 or Pantry" />
+              </div>
+
+              <div class="input-group">
+                <label for="item-tags-input">Tags</label>
+                <input type="text" id="item-tags-input" name="tags" placeholder="e.g. turnover, essential" />
+              </div>
+
+              <div class="input-group">
+                <label for="item-notes-input">Notes</label>
+                <input type="text" id="item-notes-input" name="notes" placeholder="e.g. Keep extra sets for weekend turnover" />
+              </div>
+
+              <button type="submit" id="submit-item-btn" class="btn btn-primary btn-full">Save item</button>
+            </form>
+          </aside>
         </div>
-        <form id="purchase-form" class="transaction-form">
-          <label>
-            Date
-            <input type="date" name="date" required />
-          </label>
-          <label>
-            Item
-            <select name="itemId" required></select>
-          </label>
-          <label>
-            Unit
-            <input type="text" name="unit" list="unit-options" placeholder="sets / bottles / rolls" required />
-          </label>
-          <label>
-            Quantity
-            <input type="number" name="quantity" min="1" value="1" required />
-          </label>
-          <label>
-            Cost per item (₱)
-            <input type="number" name="cost" min="0" step="0.01" value="0" required />
-          </label>
-          <label>
-            Note
-            <input type="text" name="note" placeholder="Supplier or package details" />
-          </label>
-          <button type="submit">Record purchase</button>
-        </form>
-
-        <div id="purchase-list" class="transaction-list"></div>
       </section>
 
-      <section class="panel usage-panel">
-        <div class="panel-header">
-          <h2>Item usage</h2>
-        </div>
-        <form id="usage-form" class="transaction-form">
-          <label>
-            Date
-            <input type="date" name="date" required />
-          </label>
-          <label>
-            Item
-            <select name="itemId" required></select>
-          </label>
-          <label>
-            Unit
-            <input type="text" name="unit" list="unit-options" placeholder="sets / bottles / rolls" required />
-          </label>
-          <label>
-            Quantity used
-            <input type="number" name="quantity" min="1" value="1" required />
-          </label>
-          <label>
-            Room
-            <input type="text" name="room" placeholder="Room Number" />
-          </label>
-          <label>
-            Note
-            <input type="text" name="note" placeholder="Usage details" />
-          </label>
-          <button type="submit">Record usage</button>
-        </form>
+      <!-- Tab Content 2: Purchases -->
+      <section id="tab-purchases" class="tab-panel" role="tabpanel">
+        <div class="content-grid">
+          <div class="panel main-panel">
+            <div class="panel-header">
+              <div>
+                <h2>Purchase History</h2>
+                <p class="panel-subtitle">Log of restocks & purchase transactions</p>
+              </div>
+            </div>
+            <div id="purchase-list" class="transaction-grid"></div>
+          </div>
 
-        <div id="usage-list" class="transaction-list"></div>
+          <aside class="panel side-panel">
+            <div class="panel-header">
+              <div>
+                <h2>Record Purchase</h2>
+                <p class="panel-subtitle">Adds stock to Master Inventory</p>
+              </div>
+            </div>
+            <form id="purchase-form" class="styled-form">
+              <div class="input-group">
+                <label for="purchase-date">Date <span class="required">*</span></label>
+                <input type="date" id="purchase-date" name="date" required />
+              </div>
+
+              <div class="input-group">
+                <label for="purchase-item-select">Select Item <span class="required">*</span></label>
+                <select id="purchase-item-select" name="itemId" class="styled-select" required></select>
+              </div>
+
+              <div class="form-row">
+                <div class="input-group">
+                  <label for="purchase-unit">Unit <span class="required">*</span></label>
+                  <input type="text" id="purchase-unit" name="unit" list="unit-options" placeholder="sets / bottles" required />
+                </div>
+                <div class="input-group">
+                  <label for="purchase-qty">Quantity <span class="required">*</span></label>
+                  <input type="number" id="purchase-qty" name="quantity" min="1" value="1" required />
+                </div>
+              </div>
+
+              <div class="input-group">
+                <label for="purchase-cost">Cost per item (₱) <span class="required">*</span></label>
+                <input type="number" id="purchase-cost" name="cost" min="0" step="0.01" value="0.00" required />
+              </div>
+
+              <div class="input-group">
+                <label for="purchase-note">Note / Supplier</label>
+                <input type="text" id="purchase-note" name="note" placeholder="Supplier or invoice notes" />
+              </div>
+
+              <button type="submit" class="btn btn-primary btn-full">Record Purchase</button>
+            </form>
+          </aside>
+        </div>
       </section>
 
-      <section class="panel damage-panel">
-        <div class="panel-header">
-          <h2>Damage tracker</h2>
-        </div>
-        <form id="damage-form" class="transaction-form">
-          <label>
-            Date
-            <input type="date" name="date" required />
-          </label>
-          <label>
-            Item
-            <select name="itemId" required></select>
-          </label>
-          <label>
-            Quantity damaged
-            <input type="number" name="quantity" min="1" value="1" required />
-          </label>
-          <label>
-            Location
-            <input type="text" name="location" placeholder="Room Number" />
-          </label>
-          <label>
-            Description
-            <input type="text" name="description" placeholder="Damage details" />
-          </label>
-          <button type="submit">Record damage</button>
-        </form>
+      <!-- Tab Content 3: Item Usage -->
+      <section id="tab-usage" class="tab-panel" role="tabpanel">
+        <div class="content-grid">
+          <div class="panel main-panel">
+            <div class="panel-header">
+              <div>
+                <h2>Usage History</h2>
+                <p class="panel-subtitle">Supplies consumed across rooms and turnover</p>
+              </div>
+            </div>
+            <div id="usage-list" class="transaction-grid"></div>
+          </div>
 
-        <div id="damage-list" class="transaction-list"></div>
+          <aside class="panel side-panel">
+            <div class="panel-header">
+              <div>
+                <h2>Record Usage</h2>
+                <p class="panel-subtitle">Deducts stock from Master Inventory</p>
+              </div>
+            </div>
+            <form id="usage-form" class="styled-form">
+              <div class="input-group">
+                <label for="usage-date">Date <span class="required">*</span></label>
+                <input type="date" id="usage-date" name="date" required />
+              </div>
+
+              <div class="input-group">
+                <label for="usage-item-select">Select Item <span class="required">*</span></label>
+                <select id="usage-item-select" name="itemId" class="styled-select" required></select>
+              </div>
+
+              <div class="form-row">
+                <div class="input-group">
+                  <label for="usage-unit">Unit <span class="required">*</span></label>
+                  <input type="text" id="usage-unit" name="unit" list="unit-options" placeholder="sets / bottles" required />
+                </div>
+                <div class="input-group">
+                  <label for="usage-qty">Quantity used <span class="required">*</span></label>
+                  <input type="number" id="usage-qty" name="quantity" min="1" value="1" required />
+                </div>
+              </div>
+
+              <div class="input-group">
+                <label for="usage-room">Room / Location</label>
+                <input type="text" id="usage-room" name="room" placeholder="e.g. Room 201 or Master Suite" />
+              </div>
+
+              <div class="input-group">
+                <label for="usage-note">Note</label>
+                <input type="text" id="usage-note" name="note" placeholder="Turnover details or guest request" />
+              </div>
+
+              <button type="submit" class="btn btn-primary btn-full">Record Usage</button>
+            </form>
+          </aside>
+        </div>
       </section>
 
-      <section class="panel sheets-panel" hidden>
-        <div class="panel-header">
-          <h2>Google Sheets sync</h2>
-        </div>
-        <form id="sheets-form" class="transaction-form">
-          <label>
-            Spreadsheet ID
-            <input type="text" id="sheet-id" placeholder="Google Sheet ID" />
-          </label>
-          <div class="button-row">
-            <button type="button" id="google-connect">Connect</button>
-            <button type="button" id="google-disconnect" class="ghost-btn hidden">Disconnect</button>
+      <!-- Tab Content 4: Damage Tracker -->
+      <section id="tab-damage" class="tab-panel" role="tabpanel">
+        <div class="content-grid">
+          <div class="panel main-panel">
+            <div class="panel-header">
+              <div>
+                <h2>Damage & Loss Records</h2>
+                <p class="panel-subtitle">Log of damaged or retired supplies</p>
+              </div>
+            </div>
+            <div id="damage-list" class="transaction-grid"></div>
           </div>
-          <div class="button-row">
-            <button type="button" id="sheet-import">Import from sheet</button>
-            <button type="button" id="sheet-export">Export to sheet</button>
-          </div>
-        </form>
-        <p id="sheet-status" class="sheet-status">Not connected.</p>
-        <div class="notes-card">
-          <h3>Google Sheets sync</h3>
-          <p>
-            Enter a Google OAuth Client ID and a spreadsheet ID to connect. The app can import/export inventory and transaction data from named sheet tabs.
-          </p>
+
+          <aside class="panel side-panel">
+            <div class="panel-header">
+              <div>
+                <h2>Record Damage</h2>
+                <p class="panel-subtitle">Deducts stock from Master Inventory</p>
+              </div>
+            </div>
+            <form id="damage-form" class="styled-form">
+              <div class="input-group">
+                <label for="damage-date">Date <span class="required">*</span></label>
+                <input type="date" id="damage-date" name="date" required />
+              </div>
+
+              <div class="input-group">
+                <label for="damage-item-select">Select Item <span class="required">*</span></label>
+                <select id="damage-item-select" name="itemId" class="styled-select" required></select>
+              </div>
+
+              <div class="input-group">
+                <label for="damage-qty">Quantity damaged <span class="required">*</span></label>
+                <input type="number" id="damage-qty" name="quantity" min="1" value="1" required />
+              </div>
+
+              <div class="input-group">
+                <label for="damage-location">Location</label>
+                <input type="text" id="damage-location" name="location" placeholder="e.g. Room 102 or Laundry" />
+              </div>
+
+              <div class="input-group">
+                <label for="damage-description">Description of damage</label>
+                <input type="text" id="damage-description" name="description" placeholder="e.g. Stained during guest stay" />
+              </div>
+
+              <button type="submit" class="btn btn-primary btn-full">Record Damage</button>
+            </form>
+          </aside>
         </div>
       </section>
     </div>
 
+    <!-- Google Sync Settings Modal -->
+    <div id="sync-modal" class="modal-backdrop hidden">
+      <div class="modal-card">
+        <div class="modal-header">
+          <div class="modal-title-wrap">
+            <div class="modal-icon">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"></path></svg>
+            </div>
+            <div>
+              <h3>Google Sheets Auto-Sync Settings</h3>
+              <p>Connect your account and spreadsheet ID once for instant background sync</p>
+            </div>
+          </div>
+          <button type="button" id="close-sync-modal-btn" class="icon-btn" aria-label="Close modal">&times;</button>
+        </div>
+
+        <div class="modal-body">
+          <form id="sheets-form" class="styled-form" onsubmit="event.preventDefault();">
+            <div class="input-group">
+              <label for="sheet-id">Google Sheet ID or URL <span class="required">*</span></label>
+              <input type="text" id="sheet-id" placeholder="Paste Sheet URL or ID (e.g. 1BxiMVs0...)" />
+              <small class="helper-text">You can paste the entire Google Sheet URL or just the ID from the address bar.</small>
+            </div>
+
+            <div class="modal-status-box">
+              <div class="status-label">Connection Status</div>
+              <p id="sheet-status" class="sheet-status">Not connected.</p>
+            </div>
+
+            <div class="button-group">
+              <button type="button" id="google-connect" class="btn btn-primary btn-full">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path><polyline points="10 17 15 12 10 7"></polyline><line x1="15" y1="12" x2="3" y2="12"></line></svg>
+                Connect Google Account & Sync
+              </button>
+              <button type="button" id="google-disconnect" class="btn btn-danger btn-full hidden">Disconnect Account</button>
+            </div>
+
+            <div class="modal-divider"><span>Manual Data Tools</span></div>
+
+            <div class="button-row">
+              <button type="button" id="sheet-import" class="btn btn-secondary btn-full">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                Import Data from Sheet
+              </button>
+              <button type="button" id="sheet-export" class="btn btn-secondary btn-full">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                Force Export to Sheet
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Toast Notification Container -->
+    <div id="toast-container" class="toast-container"></div>
+
     <datalist id="unit-options"></datalist>
     <script src="https://apis.google.com/js/api.js"></script>
-    <script src="app.js?v=20260719-1"></script>
+    <script src="app.js?v=20260728-1"></script>
   </body>
 </html>

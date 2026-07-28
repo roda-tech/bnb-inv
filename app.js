@@ -5,8 +5,9 @@ const DAMAGE_KEY = 'bnb-inventory-manager-damage';
 const SHEET_SETTINGS_KEY = 'bnb-inventory-sheet-settings';
 const SHEET_TOKEN_KEY = 'bnb-inventory-sheet-token';
 
-const initialItems = [];
+const GOOGLE_CLIENT_ID = '619005833964-795a62342hefkqc9t3qv4afmb8clia5e.apps.googleusercontent.com';
 
+const initialItems = [];
 const initialPurchases = [];
 const initialUsages = [];
 const initialDamages = [];
@@ -17,45 +18,83 @@ let usages = loadUsages();
 let damages = loadDamages();
 let editingItemId = null;
 
+// DOM Elements
 const inventoryList = document.getElementById('inventory-list');
 const statsEl = document.getElementById('stats');
 const lowStockList = document.getElementById('low-stock-list');
+const lowStockCountBadge = document.getElementById('low-stock-count-badge');
 const filterName = document.getElementById('filter-name');
 const filterCategory = document.getElementById('filter-category');
 const filterTags = document.getElementById('filter-tags');
+
 const form = document.getElementById('item-form');
 const formTitle = document.getElementById('form-title');
-const googleSyncSettingsBtn = document.getElementById('google-sync-settings');
 const cancelEditBtn = document.getElementById('cancel-edit');
-const submitBtn = form.querySelector('button[type="submit"]');
+const submitBtn = document.getElementById('submit-item-btn');
+const triggerAddItemBtn = document.getElementById('trigger-add-item-btn');
+
 const purchaseForm = document.getElementById('purchase-form');
 const purchaseList = document.getElementById('purchase-list');
-const purchaseItemSelect = purchaseForm.elements.itemId;
-const purchaseUnitInput = purchaseForm.elements.unit;
+const purchaseItemSelect = purchaseForm ? purchaseForm.elements.itemId : null;
+const purchaseUnitInput = purchaseForm ? purchaseForm.elements.unit : null;
+
 const usageForm = document.getElementById('usage-form');
 const usageList = document.getElementById('usage-list');
-const usageItemSelect = usageForm.elements.itemId;
-const usageUnitInput = usageForm.elements.unit;
+const usageItemSelect = usageForm ? usageForm.elements.itemId : null;
+const usageUnitInput = usageForm ? usageForm.elements.unit : null;
+
 const damageForm = document.getElementById('damage-form');
 const damageList = document.getElementById('damage-list');
-const damageItemSelect = damageForm.elements.itemId;
+const damageItemSelect = damageForm ? damageForm.elements.itemId : null;
+
 const unitDatalist = document.getElementById('unit-options');
+const toastContainer = document.getElementById('toast-container');
+
+// Sync Modal Elements
+const syncModal = document.getElementById('sync-modal');
+const openSyncModalBtn = document.getElementById('open-sync-modal-btn');
+const closeSyncModalBtn = document.getElementById('close-sync-modal-btn');
+const syncStatusBadge = document.getElementById('sync-status-badge');
+const syncStatusText = document.getElementById('sync-status-text');
+
 const sheetIdInput = document.getElementById('sheet-id');
 const googleConnectBtn = document.getElementById('google-connect');
 const googleDisconnectBtn = document.getElementById('google-disconnect');
 const sheetImportBtn = document.getElementById('sheet-import');
 const sheetExportBtn = document.getElementById('sheet-export');
 const sheetStatus = document.getElementById('sheet-status');
-const GOOGLE_CLIENT_ID = '619005833964-795a62342hefkqc9t3qv4afmb8clia5e.apps.googleusercontent.com';
 
 let sheetConnected = false;
 let sheetAccessToken = null;
 let sheetAuthState = null;
 let lastSheetSync = null;
 
+/* --- Toast Notification System --- */
+function showToast(message, type = 'info', duration = 4000) {
+  if (!toastContainer) return;
+  const toast = document.createElement('div');
+  toast.className = `toast ${type}`;
+  
+  let icon = 'ℹ️';
+  if (type === 'success') icon = '✅';
+  if (type === 'error') icon = '⚠️';
+
+  toast.innerHTML = `<span>${icon}</span> <span>${message}</span>`;
+  toastContainer.appendChild(toast);
+
+  setTimeout(() => {
+    toast.style.opacity = '0';
+    toast.style.transform = 'translateY(10px)';
+    toast.style.transition = 'all 0.3s ease';
+    setTimeout(() => toast.remove(), 300);
+  }, duration);
+}
+
+/* --- Data Normalization --- */
 function normalizeItems(itemsToNormalize) {
   return itemsToNormalize.map((item) => ({
     ...item,
+    id: Number(item.id) || Date.now(),
     openingStock: Number(item.openingStock ?? item.quantity ?? 0),
     price: Number(item.price ?? 0),
     minStock: Number(item.minStock ?? 0),
@@ -106,74 +145,59 @@ function normalizeDamages(damagesToNormalize) {
   }));
 }
 
+/* --- Local Storage Load & Save --- */
 function loadItems() {
   const stored = localStorage.getItem(STORAGE_KEY);
-
   if (stored) {
     try {
       const parsed = JSON.parse(stored);
-      if (Array.isArray(parsed)) {
-        return normalizeItems(parsed);
-      }
-    } catch (error) {
-      console.error('Failed to parse saved inventory', error);
+      if (Array.isArray(parsed)) return normalizeItems(parsed);
+    } catch (e) {
+      console.error('Failed to parse saved inventory', e);
     }
   }
-
   localStorage.setItem(STORAGE_KEY, JSON.stringify(initialItems));
   return normalizeItems(initialItems);
 }
 
 function loadPurchases() {
   const stored = localStorage.getItem(PURCHASES_KEY);
-
   if (stored) {
     try {
       const parsed = JSON.parse(stored);
-      if (Array.isArray(parsed)) {
-        return normalizePurchases(parsed);
-      }
-    } catch (error) {
-      console.error('Failed to parse saved purchases', error);
+      if (Array.isArray(parsed)) return normalizePurchases(parsed);
+    } catch (e) {
+      console.error('Failed to parse saved purchases', e);
     }
   }
-
   localStorage.setItem(PURCHASES_KEY, JSON.stringify(initialPurchases));
   return normalizePurchases(initialPurchases);
 }
 
 function loadUsages() {
   const stored = localStorage.getItem(USAGE_KEY);
-
   if (stored) {
     try {
       const parsed = JSON.parse(stored);
-      if (Array.isArray(parsed)) {
-        return normalizeUsages(parsed);
-      }
-    } catch (error) {
-      console.error('Failed to parse saved usages', error);
+      if (Array.isArray(parsed)) return normalizeUsages(parsed);
+    } catch (e) {
+      console.error('Failed to parse saved usages', e);
     }
   }
-
   localStorage.setItem(USAGE_KEY, JSON.stringify(initialUsages));
   return normalizeUsages(initialUsages);
 }
 
 function loadDamages() {
   const stored = localStorage.getItem(DAMAGE_KEY);
-
   if (stored) {
     try {
       const parsed = JSON.parse(stored);
-      if (Array.isArray(parsed)) {
-        return normalizeDamages(parsed);
-      }
-    } catch (error) {
-      console.error('Failed to parse saved damages', error);
+      if (Array.isArray(parsed)) return normalizeDamages(parsed);
+    } catch (e) {
+      console.error('Failed to parse saved damages', e);
     }
   }
-
   localStorage.setItem(DAMAGE_KEY, JSON.stringify(initialDamages));
   return normalizeDamages(initialDamages);
 }
@@ -210,22 +234,23 @@ function persistSheetSettings() {
   }
 }
 
+/* --- Calculations & Derivations --- */
 function getPurchaseQuantity(item) {
   return purchases
-    .filter((purchase) => purchase.itemId === item.id)
-    .reduce((sum, purchase) => sum + purchase.quantity, 0);
+    .filter((p) => p.itemId === item.id)
+    .reduce((sum, p) => sum + p.quantity, 0);
 }
 
 function getUsageQuantity(item) {
   return usages
-    .filter((usage) => usage.itemId === item.id)
-    .reduce((sum, usage) => sum + usage.quantity, 0);
+    .filter((u) => u.itemId === item.id)
+    .reduce((sum, u) => sum + u.quantity, 0);
 }
 
 function getDamageQuantity(item) {
   return damages
-    .filter((damage) => damage.itemId === item.id)
-    .reduce((sum, damage) => sum + damage.quantity, 0);
+    .filter((d) => d.itemId === item.id)
+    .reduce((sum, d) => sum + d.quantity, 0);
 }
 
 function getCurrentStock(item) {
@@ -237,7 +262,7 @@ function getCurrentStock(item) {
 
 function getLatestCost(item) {
   const itemPurchases = purchases
-    .filter((purchase) => purchase.itemId === item.id)
+    .filter((p) => p.itemId === item.id)
     .sort((a, b) => b.date.localeCompare(a.date));
   return itemPurchases.length > 0 ? itemPurchases[0].cost : item.price;
 }
@@ -252,32 +277,73 @@ function getStatus(item) {
 function getKnownUnits() {
   const units = new Set();
   items.forEach((item) => units.add(item.unit.toString().trim().toLowerCase()));
-  purchases.forEach((purchase) => {
-    if (purchase.unit) units.add(purchase.unit.toString().trim().toLowerCase());
-  });
-  usages.forEach((usage) => {
-    if (usage.unit) units.add(usage.unit.toString().trim().toLowerCase());
-  });
+  purchases.forEach((p) => p.unit && units.add(p.unit.toString().trim().toLowerCase()));
+  usages.forEach((u) => u.unit && units.add(u.unit.toString().trim().toLowerCase()));
   return [...units].filter(Boolean).sort();
 }
 
 function updateUnitDatalist() {
+  if (!unitDatalist) return;
   const units = getKnownUnits();
-  unitDatalist.innerHTML = units.map((unit) => `<option value="${unit}"></option>`).join('');
+  unitDatalist.innerHTML = units.map((u) => `<option value="${u}"></option>`).join('');
 }
 
 function updateSheetStatus(message, connected = sheetConnected) {
-  sheetStatus.textContent = message;
   sheetConnected = connected;
-  googleConnectBtn.classList.toggle('hidden', connected);
-  googleDisconnectBtn.classList.toggle('hidden', !connected);
+  if (sheetStatus) sheetStatus.textContent = message;
+  
+  if (googleConnectBtn) googleConnectBtn.classList.toggle('hidden', connected);
+  if (googleDisconnectBtn) googleDisconnectBtn.classList.toggle('hidden', !connected);
+
+  if (syncStatusBadge && syncStatusText) {
+    syncStatusBadge.className = `sync-badge ${connected ? 'online' : 'offline'}`;
+    syncStatusText.textContent = connected ? 'Sheets: Connected' : 'Sheets: Disconnected';
+  }
 }
 
+/* --- Tab Switching Navigation --- */
+function setupTabs() {
+  const tabButtons = document.querySelectorAll('.nav-tab');
+  const tabPanels = document.querySelectorAll('.tab-panel');
+
+  tabButtons.forEach((button) => {
+    button.addEventListener('click', () => {
+      const targetTabId = button.dataset.tab;
+
+      tabButtons.forEach((btn) => {
+        const isActive = btn === button;
+        btn.classList.toggle('active', isActive);
+        btn.setAttribute('aria-selected', isActive ? 'true' : 'false');
+      });
+
+      tabPanels.forEach((panel) => {
+        const isActive = panel.id === targetTabId;
+        panel.classList.toggle('active', isActive);
+      });
+    });
+  });
+}
+
+/* --- Modal Dialog Handling --- */
+function setupSyncModal() {
+  if (!syncModal) return;
+
+  const openModal = () => syncModal.classList.remove('hidden');
+  const closeModal = () => syncModal.classList.add('hidden');
+
+  if (openSyncModalBtn) openSyncModalBtn.addEventListener('click', openModal);
+  if (syncStatusBadge) syncStatusBadge.addEventListener('click', openModal);
+  if (closeSyncModalBtn) closeSyncModalBtn.addEventListener('click', closeModal);
+
+  syncModal.addEventListener('click', (e) => {
+    if (e.target === syncModal) closeModal();
+  });
+}
+
+/* --- Google OAuth Handling --- */
 function handleGoogleOAuthRedirect() {
   const hash = window.location.hash.substring(1);
-  if (!hash) {
-    return;
-  }
+  if (!hash) return;
 
   const params = new URLSearchParams(hash);
   const accessToken = params.get('access_token');
@@ -344,23 +410,23 @@ function getMasterInventoryRows() {
 }
 
 function getPurchaseRows() {
-  return purchases.map((purchase) => {
-    const item = items.find((entry) => entry.id === purchase.itemId);
-    return [purchase.date, item ? item.name : 'Unknown', purchase.unit, purchase.quantity, purchase.cost.toFixed(2), purchase.note];
+  return purchases.map((p) => {
+    const item = items.find((e) => e.id === p.itemId);
+    return [p.date, item ? item.name : 'Unknown', p.unit, p.quantity, p.cost.toFixed(2), p.note];
   });
 }
 
 function getUsageRows() {
-  return usages.map((usage) => {
-    const item = items.find((entry) => entry.id === usage.itemId);
-    return [usage.date, item ? item.name : 'Unknown', usage.unit, usage.quantity, usage.note, usage.room];
+  return usages.map((u) => {
+    const item = items.find((e) => e.id === u.itemId);
+    return [u.date, item ? item.name : 'Unknown', u.unit, u.quantity, u.note, u.room];
   });
 }
 
 function getDamageRows() {
-  return damages.map((damage) => {
-    const item = items.find((entry) => entry.id === damage.itemId);
-    return [damage.date, item ? item.name : 'Unknown', damage.quantity, damage.description, damage.location];
+  return damages.map((d) => {
+    const item = items.find((e) => e.id === d.itemId);
+    return [d.date, item ? item.name : 'Unknown', d.quantity, d.description, d.location];
   });
 }
 
@@ -369,6 +435,7 @@ function normalizeHeader(value) {
 }
 
 function getSpreadsheetId() {
+  if (!sheetIdInput) return '';
   const rawValue = sheetIdInput.value.toString().trim();
   const urlMatch = rawValue.match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
   if (urlMatch && urlMatch[1]) {
@@ -434,10 +501,7 @@ async function validateWorkbookStructure() {
 }
 
 async function createMissingSheets(sheetNames) {
-  if (sheetNames.length === 0) {
-    return;
-  }
-
+  if (sheetNames.length === 0) return;
   const spreadsheetId = getSpreadsheetId();
   const requests = sheetNames.map((sheetName) => ({ addSheet: { properties: { title: sheetName } } }));
   await googleSheetsFetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}:batchUpdate`, {
@@ -467,21 +531,20 @@ async function clearSheet(sheetName) {
 
 function canSyncWithSheet() {
   const spreadsheetId = getSpreadsheetId();
-  return sheetConnected && spreadsheetId !== '';
+  return sheetConnected && spreadsheetId !== '' && sheetAccessToken;
 }
 
-async function syncTransactionsToSheet() {
+async function syncTransactionsToSheet(silent = false) {
   if (!canSyncWithSheet()) {
-    updateSheetStatus('Not connected or missing sheet ID.', false);
+    if (!silent) showToast('Not connected to Google Sheets.', 'error');
     return;
   }
 
-  updateSheetStatus('Syncing transactions to Google Sheet...', true);
+  updateSheetStatus('Syncing data to Google Sheet...', true);
   try {
-    const spreadsheetId = getSpreadsheetId();
     const metadata = await getSpreadsheetMetadata();
-    const existingSheets = (metadata.sheets || []).map((sheet) => sheet.properties.title);
-    const missingSheets = Object.keys(SHEET_SPECS).filter((sheetName) => !existingSheets.includes(sheetName));
+    const existingSheets = (metadata.sheets || []).map((s) => s.properties.title);
+    const missingSheets = Object.keys(SHEET_SPECS).filter((name) => !existingSheets.includes(name));
     if (missingSheets.length > 0) {
       await createMissingSheets(missingSheets);
     }
@@ -503,28 +566,31 @@ async function syncTransactionsToSheet() {
     ]);
 
     lastSheetSync = new Date();
-    updateSheetStatus(`Export complete at ${lastSheetSync.toLocaleTimeString()}.`, true);
+    const timeStr = lastSheetSync.toLocaleTimeString();
+    updateSheetStatus(`Connected • Last synced at ${timeStr}`, true);
+    if (!silent) showToast(`Synced to Google Sheets at ${timeStr}`, 'success');
   } catch (error) {
-    updateSheetStatus(`Export failed: ${error.message || 'Unknown error'}`, false);
+    updateSheetStatus(`Sync failed: ${error.message || 'Unknown error'}`, false);
+    if (!silent) showToast(`Google Sync Error: ${error.message}`, 'error');
   }
 }
 
 function scheduleSheetSync() {
-  if (sheetConnected) {
-    syncTransactionsToSheet();
+  if (canSyncWithSheet()) {
+    syncTransactionsToSheet(true);
   }
 }
 
 function hasTransactions(itemId) {
-  return purchases.some((purchase) => purchase.itemId === itemId)
-    || usages.some((usage) => usage.itemId === itemId)
-    || damages.some((damage) => damage.itemId === itemId);
+  return purchases.some((p) => p.itemId === itemId)
+    || usages.some((u) => u.itemId === itemId)
+    || damages.some((d) => d.itemId === itemId);
 }
 
 function getFilteredItems() {
-  const nameTerm = filterName.value.trim().toLowerCase();
-  const categoryTerm = filterCategory.value.trim().toLowerCase();
-  const tagsTerm = filterTags.value.trim().toLowerCase();
+  const nameTerm = filterName ? filterName.value.trim().toLowerCase() : '';
+  const categoryTerm = filterCategory ? filterCategory.value.trim().toLowerCase() : '';
+  const tagsTerm = filterTags ? filterTags.value.trim().toLowerCase() : '';
 
   return items.filter((item) => {
     const matchesName = nameTerm === '' || item.name.toLowerCase().includes(nameTerm);
@@ -534,6 +600,7 @@ function getFilteredItems() {
   });
 }
 
+/* --- Rendering Views & UI Components --- */
 function render() {
   renderStats();
   renderLowStockList();
@@ -541,13 +608,14 @@ function render() {
   renderPurchaseItems();
   renderUsageItems();
   renderDamageItems();
+  renderPurchases();
   renderUsages();
   renderDamages();
-  renderPurchases();
   updateUnitDatalist();
 }
 
 function renderStats() {
+  if (!statsEl) return;
   const totalItems = items.length;
   const lowStockItems = items.filter((item) => {
     const status = getStatus(item);
@@ -558,32 +626,42 @@ function renderStats() {
     const currentStock = getCurrentStock(item);
     return sum + currentStock * getLatestCost(item);
   }, 0);
+  const storageLocations = new Set(items.map((item) => item.storage)).size;
 
   statsEl.innerHTML = `
-    <div class="stat-box">
-      <div class="stat-label">Total items</div>
-      <div class="stat-value">${totalItems}</div>
+    <div class="stat-card">
+      <div class="stat-icon primary">📦</div>
+      <div class="stat-info">
+        <span class="stat-label">Total Items</span>
+        <span class="stat-val">${totalItems}</span>
+      </div>
     </div>
-    <div class="stat-box">
-      <div class="stat-label">Needs restock</div>
-      <div class="stat-value">${lowStockItems}</div>
+    <div class="stat-card">
+      <div class="stat-icon warning">⚠️</div>
+      <div class="stat-info">
+        <span class="stat-label">Needs Restock</span>
+        <span class="stat-val">${lowStockItems}</span>
+      </div>
     </div>
-    <div class="stat-box">
-      <div class="stat-label">Current stock</div>
-      <div class="stat-value">${totalUnits}</div>
+    <div class="stat-card">
+      <div class="stat-icon accent">📊</div>
+      <div class="stat-info">
+        <span class="stat-label">Total Stock Units</span>
+        <span class="stat-val">${totalUnits}</span>
+      </div>
     </div>
-    <div class="stat-box">
-      <div class="stat-label">Inventory value</div>
-      <div class="stat-value">₱${totalValue.toFixed(2)}</div>
-    </div>
-    <div class="stat-box">
-      <div class="stat-label">Locations tracked</div>
-      <div class="stat-value">${new Set(items.map((item) => item.storage)).size}</div>
+    <div class="stat-card">
+      <div class="stat-icon success">₱</div>
+      <div class="stat-info">
+        <span class="stat-label">Inventory Valuation</span>
+        <span class="stat-val">₱${totalValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+      </div>
     </div>
   `;
 }
 
 function resetForm() {
+  if (!form) return;
   form.reset();
   editingItemId = null;
   formTitle.textContent = 'Add inventory item';
@@ -592,29 +670,33 @@ function resetForm() {
 }
 
 function resetPurchaseForm() {
+  if (!purchaseForm) return;
   purchaseForm.reset();
   purchaseForm.elements.date.value = new Date().toISOString().slice(0, 10);
-  purchaseItemSelect.value = items.length > 0 ? items[0].id : '';
-  const selectedItem = items[0];
-  purchaseUnitInput.value = selectedItem ? selectedItem.unit : '';
-  updateUnitDatalist();
+  if (items.length > 0) {
+    purchaseItemSelect.value = items[0].id;
+    if (purchaseUnitInput) purchaseUnitInput.value = items[0].unit;
+  }
 }
 
 function resetUsageForm() {
+  if (!usageForm) return;
   usageForm.reset();
   usageForm.elements.date.value = new Date().toISOString().slice(0, 10);
-  usageItemSelect.value = items.length > 0 ? items[0].id : '';
-  const selectedItem = items[0];
-  usageUnitInput.value = selectedItem ? selectedItem.unit : '';
-  updateUnitDatalist();
+  if (items.length > 0) {
+    usageItemSelect.value = items[0].id;
+    if (usageUnitInput) usageUnitInput.value = items[0].unit;
+  }
 }
 
 function resetDamageForm() {
+  if (!damageForm) return;
   damageForm.reset();
   damageForm.elements.date.value = new Date().toISOString().slice(0, 10);
-  damageItemSelect.value = items.length > 0 ? items[0].id : '';
-  const selectedItem = items[0];
-  damageForm.elements.location.value = selectedItem ? selectedItem.storage : '';
+  if (items.length > 0) {
+    damageItemSelect.value = items[0].id;
+    damageForm.elements.location.value = items[0].storage;
+  }
 }
 
 function populateForm(item) {
@@ -633,50 +715,69 @@ function populateForm(item) {
   form.elements.storage.value = item.storage;
   form.elements.tags.value = item.tags;
   form.elements.notes.value = item.notes;
-  form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+  form.scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
 
 function renderInventory() {
+  if (!inventoryList) return;
   inventoryList.innerHTML = '';
   const filteredItems = getFilteredItems();
 
   if (filteredItems.length === 0) {
-    inventoryList.innerHTML = '<p>No inventory items match those filters.</p>';
+    inventoryList.innerHTML = '<p class="text-muted" style="grid-column: 1/-1; padding: 20px; text-align: center;">No inventory items match your search filters.</p>';
     return;
   }
 
   filteredItems.forEach((item) => {
     const currentStock = getCurrentStock(item);
     const cost = getLatestCost(item);
+    const status = getStatus(item);
     const card = document.createElement('article');
     card.className = 'inventory-card';
-    const status = getStatus(item);
+
+    let badgeText = 'In Stock';
+    if (status === 'low-stock') badgeText = 'Low Stock';
+    if (status === 'out-of-stock') badgeText = 'Out of Stock';
 
     card.innerHTML = `
-      <div class="panel-header">
-        <h3>${item.name}</h3>
-        <span class="badge ${status}">${status.replace('-', ' ')}</span>
+      <div class="card-top">
+        <div>
+          <h3 class="card-title">${item.name}</h3>
+          <span class="chip chip-category">${item.category}</span>
+        </div>
+        <span class="badge ${status}">${badgeText}</span>
       </div>
-      <div class="meta-row">
-        <span>Category: ${item.category}</span>
-        <span>Current: ${currentStock} ${item.unit}</span>
+
+      <div class="meta-grid">
+        <div class="meta-item">
+          <span class="meta-label">Current Stock</span>
+          <span class="meta-value">${currentStock} ${item.unit}</span>
+        </div>
+        <div class="meta-item">
+          <span class="meta-label">Latest Unit Cost</span>
+          <span class="meta-value">₱${cost.toFixed(2)}</span>
+        </div>
+        <div class="meta-item">
+          <span class="meta-label">Min Threshold</span>
+          <span class="meta-value">${item.minStock} ${item.unit}</span>
+        </div>
+        <div class="meta-item">
+          <span class="meta-label">Reorder Qty</span>
+          <span class="meta-value">${item.reorderQty} ${item.unit}</span>
+        </div>
       </div>
-      <div class="meta-row">
-        <span>Opening: ${item.openingStock} ${item.unit}</span>
-        <span>Latest cost: ₱${cost.toFixed(2)}</span>
+
+      <div style="font-size: 0.825rem; color: var(--text-muted); display: flex; flex-wrap: wrap; gap: 8px;">
+        <span>📍 ${item.storage}</span>
+        ${item.tags ? `<span class="chip chip-tag">🏷️ ${item.tags}</span>` : ''}
       </div>
-      <div class="meta-row">
-        <span>Min: ${item.minStock} ${item.unit}</span>
-        <span>Reorder: ${item.reorderQty} ${item.unit}</span>
-      </div>
-      <div class="meta-row">
-        <span>Storage: ${item.storage}</span>
-        <span>Tags: ${item.tags || 'none'}</span>
-      </div>
-      <p>${item.notes || 'No notes added.'}</p>
-      <div class="actions">
-        <button class="small-btn" data-action="edit" data-id="${item.id}">Edit</button>
-        <button class="small-btn" data-action="delete" data-id="${item.id}" ${hasTransactions(item.id) ? "style='background-color: gray;' disabled title='Cannot delete item with existing records'" : ''}>Delete</button>
+
+      ${item.notes ? `<p class="card-notes">"${item.notes}"</p>` : ''}
+
+      <div class="card-actions">
+        <button type="button" class="btn btn-secondary btn-sm" data-action="edit" data-id="${item.id}">Edit</button>
+        <button type="button" class="btn btn-secondary btn-sm" data-action="delete" data-id="${item.id}" ${hasTransactions(item.id) ? "disabled title='Cannot delete item with transaction history'" : ''}>Delete</button>
       </div>
     `;
 
@@ -685,100 +786,117 @@ function renderInventory() {
 }
 
 function renderPurchaseItems() {
+  if (!purchaseItemSelect) return;
   const selectedValue = purchaseItemSelect.value;
-  purchaseItemSelect.innerHTML = items.map((item) => `<option value="${item.id}">${item.name}</option>`).join('');
+  purchaseItemSelect.innerHTML = items.map((item) => `<option value="${item.id}">${item.name} (${getCurrentStock(item)} ${item.unit})</option>`).join('');
 
-  if (selectedValue && [...purchaseItemSelect.options].some((option) => option.value === selectedValue)) {
+  if (selectedValue && [...purchaseItemSelect.options].some((opt) => opt.value === selectedValue)) {
     purchaseItemSelect.value = selectedValue;
   }
 
   const selectedItem = items.find((item) => item.id === Number(purchaseItemSelect.value));
-  if (selectedItem) {
+  if (selectedItem && purchaseUnitInput) {
     purchaseUnitInput.value = selectedItem.unit;
   }
-  updateUnitDatalist();
 }
 
 function renderUsageItems() {
+  if (!usageItemSelect) return;
   const selectedValue = usageItemSelect.value;
-  usageItemSelect.innerHTML = items.map((item) => `<option value="${item.id}">${item.name}</option>`).join('');
+  usageItemSelect.innerHTML = items.map((item) => `<option value="${item.id}">${item.name} (${getCurrentStock(item)} ${item.unit})</option>`).join('');
 
-  if (selectedValue && [...usageItemSelect.options].some((option) => option.value === selectedValue)) {
+  if (selectedValue && [...usageItemSelect.options].some((opt) => opt.value === selectedValue)) {
     usageItemSelect.value = selectedValue;
   }
 
   const selectedItem = items.find((item) => item.id === Number(usageItemSelect.value));
-  if (selectedItem) {
+  if (selectedItem && usageUnitInput) {
     usageUnitInput.value = selectedItem.unit;
   }
-  updateUnitDatalist();
 }
 
 function renderDamageItems() {
+  if (!damageItemSelect) return;
   const selectedValue = damageItemSelect.value;
-  damageItemSelect.innerHTML = items.map((item) => `<option value="${item.id}">${item.name}</option>`).join('');
+  damageItemSelect.innerHTML = items.map((item) => `<option value="${item.id}">${item.name} (${getCurrentStock(item)} ${item.unit})</option>`).join('');
 
-  if (selectedValue && [...damageItemSelect.options].some((option) => option.value === selectedValue)) {
+  if (selectedValue && [...damageItemSelect.options].some((opt) => opt.value === selectedValue)) {
     damageItemSelect.value = selectedValue;
   }
 
   const selectedItem = items.find((item) => item.id === Number(damageItemSelect.value));
-  if (selectedItem) {
+  if (selectedItem && damageForm) {
     damageForm.elements.location.value = selectedItem.storage;
   }
 }
 
 function renderLowStockList() {
+  if (!lowStockList) return;
   lowStockList.innerHTML = '';
+
   const lowStockItems = items
     .filter((item) => getStatus(item) === 'low-stock' || getStatus(item) === 'out-of-stock')
     .sort((a, b) => getCurrentStock(a) - getCurrentStock(b));
 
+  if (lowStockCountBadge) {
+    lowStockCountBadge.textContent = `${lowStockItems.length} items`;
+  }
+
   if (lowStockItems.length === 0) {
-    lowStockList.innerHTML = '<li>No low stock items.</li>';
+    lowStockList.innerHTML = '<li><span>All items are sufficiently stocked!</span></li>';
     return;
   }
 
   lowStockItems.forEach((item) => {
     const currentStock = getCurrentStock(item);
-    const listItem = document.createElement('li');
-    listItem.innerHTML = `
+    const li = document.createElement('li');
+    li.innerHTML = `
       <strong>${item.name}</strong>
       <span>${currentStock} ${item.unit} left (min ${item.minStock})</span>
     `;
-    lowStockList.appendChild(listItem);
+    lowStockList.appendChild(li);
   });
 }
 
 function renderPurchases() {
+  if (!purchaseList) return;
   purchaseList.innerHTML = '';
 
   if (purchases.length === 0) {
-    purchaseList.innerHTML = '<p>No purchase records yet.</p>';
+    purchaseList.innerHTML = '<p class="text-muted" style="grid-column: 1/-1;">No purchase records logged yet.</p>';
     return;
   }
 
   purchases
     .slice()
     .sort((a, b) => b.date.localeCompare(a.date))
-    .forEach((purchase) => {
-      const item = items.find((itemEntry) => itemEntry.id === purchase.itemId);
+    .forEach((p) => {
+      const item = items.find((e) => e.id === p.itemId);
       const card = document.createElement('article');
       card.className = 'transaction-card';
 
       card.innerHTML = `
-        <div class="panel-header">
-          <h3>${item ? item.name : 'Unknown item'}</h3>
-          <span class="badge in-stock">${purchase.date}</span>
+        <div class="card-top">
+          <h3 class="card-title">${item ? item.name : 'Unknown Item'}</h3>
+          <span class="badge in-stock">📅 ${p.date}</span>
         </div>
-        <div class="meta-row">
-          <span>Quantity: ${purchase.quantity} ${purchase.unit}</span>
-          <span>Cost: ₱${purchase.cost.toFixed(2)} each</span>
+
+        <div class="meta-grid">
+          <div class="meta-item">
+            <span class="meta-label">Quantity Added</span>
+            <span class="meta-value">+${p.quantity} ${p.unit}</span>
+          </div>
+          <div class="meta-item">
+            <span class="meta-label">Unit Cost</span>
+            <span class="meta-value">₱${p.cost.toFixed(2)}</span>
+          </div>
+          <div class="meta-item" style="grid-column: 1/-1;">
+            <span class="meta-label">Total Purchase Value</span>
+            <span class="meta-value">₱${(p.quantity * p.cost).toFixed(2)}</span>
+          </div>
         </div>
-        <div class="meta-row">
-          <span>Value: ₱${(purchase.quantity * purchase.cost).toFixed(2)}</span>
-          <span>Note: ${purchase.note || 'None'}</span>
-        </div>
+
+        ${p.note ? `<p class="card-notes">Supplier/Note: ${p.note}</p>` : ''}
       `;
 
       purchaseList.appendChild(card);
@@ -786,33 +904,40 @@ function renderPurchases() {
 }
 
 function renderUsages() {
+  if (!usageList) return;
   usageList.innerHTML = '';
 
   if (usages.length === 0) {
-    usageList.innerHTML = '<p>No usage records yet.</p>';
+    usageList.innerHTML = '<p class="text-muted" style="grid-column: 1/-1;">No usage records logged yet.</p>';
     return;
   }
 
   usages
     .slice()
     .sort((a, b) => b.date.localeCompare(a.date))
-    .forEach((usage) => {
-      const item = items.find((itemEntry) => itemEntry.id === usage.itemId);
+    .forEach((u) => {
+      const item = items.find((e) => e.id === u.itemId);
       const card = document.createElement('article');
       card.className = 'transaction-card';
 
       card.innerHTML = `
-        <div class="panel-header">
-          <h3>${item ? item.name : 'Unknown item'}</h3>
-          <span class="badge out-of-stock">${usage.date}</span>
+        <div class="card-top">
+          <h3 class="card-title">${item ? item.name : 'Unknown Item'}</h3>
+          <span class="badge out-of-stock">📅 ${u.date}</span>
         </div>
-        <div class="meta-row">
-          <span>Quantity used: ${usage.quantity} ${usage.unit}</span>
-          <span>Room: ${usage.room || 'N/A'}</span>
+
+        <div class="meta-grid">
+          <div class="meta-item">
+            <span class="meta-label">Quantity Used</span>
+            <span class="meta-value">-${u.quantity} ${u.unit}</span>
+          </div>
+          <div class="meta-item">
+            <span class="meta-label">Room / Location</span>
+            <span class="meta-value">${u.room || 'General'}</span>
+          </div>
         </div>
-        <div class="meta-row">
-          <span>Note: ${usage.note || 'None'}</span>
-        </div>
+
+        ${u.note ? `<p class="card-notes">Note: ${u.note}</p>` : ''}
       `;
 
       usageList.appendChild(card);
@@ -820,55 +945,60 @@ function renderUsages() {
 }
 
 function renderDamages() {
+  if (!damageList) return;
   damageList.innerHTML = '';
 
   if (damages.length === 0) {
-    damageList.innerHTML = '<p>No damage records yet.</p>';
+    damageList.innerHTML = '<p class="text-muted" style="grid-column: 1/-1;">No damage records logged yet.</p>';
     return;
   }
 
   damages
     .slice()
     .sort((a, b) => b.date.localeCompare(a.date))
-    .forEach((damage) => {
-      const item = items.find((itemEntry) => itemEntry.id === damage.itemId);
-      const currentStock = item ? getCurrentStock(item) : 0;
-      const location = item ? item.storage : damage.location || 'N/A';
+    .forEach((d) => {
+      const item = items.find((e) => e.id === d.itemId);
       const card = document.createElement('article');
       card.className = 'transaction-card';
 
       card.innerHTML = `
-        <div class="panel-header">
-          <h3>${item ? item.name : 'Unknown item'}</h3>
-          <span class="badge low-stock">${damage.date}</span>
+        <div class="card-top">
+          <h3 class="card-title">${item ? item.name : 'Unknown Item'}</h3>
+          <span class="badge low-stock">📅 ${d.date}</span>
         </div>
-        <div class="meta-row">
-          <span>Quantity damaged: ${damage.quantity} ${item ? item.unit : ''}</span>
-          <span>Remaining: ${currentStock} ${item ? item.unit : ''}</span>
+
+        <div class="meta-grid">
+          <div class="meta-item">
+            <span class="meta-label">Quantity Damaged</span>
+            <span class="meta-value">-${d.quantity} ${item ? item.unit : ''}</span>
+          </div>
+          <div class="meta-item">
+            <span class="meta-label">Location</span>
+            <span class="meta-value">${d.location || 'Unassigned'}</span>
+          </div>
         </div>
-        <div class="meta-row">
-          <span>Location: ${location}</span>
-          <span>Description: ${damage.description || 'None'}</span>
-        </div>
+
+        ${d.description ? `<p class="card-notes">Details: ${d.description}</p>` : ''}
       `;
 
       damageList.appendChild(card);
     });
 }
 
+/* --- Event Handlers & Form Submissions --- */
 form.addEventListener('submit', (event) => {
   event.preventDefault();
   const formData = new FormData(form);
   const name = formData.get('name').toString().trim();
 
   if (!name) {
-    window.alert('Item name is required.');
+    showToast('Item name is required.', 'error');
     return;
   }
 
   const duplicateItem = items.find((item) => item.name.toLowerCase() === name.toLowerCase() && item.id !== editingItemId);
   if (duplicateItem) {
-    window.alert('Item name must be unique. Please choose a different name.');
+    showToast('Item name must be unique.', 'error');
     return;
   }
 
@@ -887,8 +1017,10 @@ form.addEventListener('submit', (event) => {
 
   if (editingItemId !== null) {
     items = items.map((item) => item.id === editingItemId ? { ...item, ...updatedValues } : item);
+    showToast(`Updated item "${name}"`, 'success');
   } else {
     items.unshift({ id: Date.now(), ...updatedValues });
+    showToast(`Added new item "${name}"`, 'success');
   }
 
   saveState();
@@ -897,23 +1029,34 @@ form.addEventListener('submit', (event) => {
   scheduleSheetSync();
 });
 
+if (cancelEditBtn) {
+  cancelEditBtn.addEventListener('click', resetForm);
+}
+
+if (triggerAddItemBtn) {
+  triggerAddItemBtn.addEventListener('click', () => {
+    resetForm();
+    form.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  });
+}
+
 purchaseItemSelect.addEventListener('change', () => {
   const selectedItem = items.find((item) => item.id === Number(purchaseItemSelect.value));
-  if (selectedItem) {
+  if (selectedItem && purchaseUnitInput) {
     purchaseUnitInput.value = selectedItem.unit;
   }
 });
 
 usageItemSelect.addEventListener('change', () => {
   const selectedItem = items.find((item) => item.id === Number(usageItemSelect.value));
-  if (selectedItem) {
+  if (selectedItem && usageUnitInput) {
     usageUnitInput.value = selectedItem.unit;
   }
 });
 
 damageItemSelect.addEventListener('change', () => {
   const selectedItem = items.find((item) => item.id === Number(damageItemSelect.value));
-  if (selectedItem) {
+  if (selectedItem && damageForm) {
     damageForm.elements.location.value = selectedItem.storage;
   }
 });
@@ -935,18 +1078,30 @@ purchaseForm.addEventListener('submit', (event) => {
   saveState();
   render();
   resetPurchaseForm();
+  showToast('Purchase transaction recorded successfully', 'success');
   scheduleSheetSync();
 });
 
 usageForm.addEventListener('submit', (event) => {
   event.preventDefault();
   const formData = new FormData(usageForm);
+  const itemId = Number(formData.get('itemId'));
+  const quantity = Number(formData.get('quantity'));
+  const item = items.find((i) => i.id === itemId);
+
+  if (item) {
+    const current = getCurrentStock(item);
+    if (quantity > current) {
+      showToast(`Warning: Usage quantity (${quantity}) exceeds current stock (${current})!`, 'error');
+    }
+  }
+
   const usage = {
     id: Date.now(),
     date: formData.get('date').toString(),
-    itemId: Number(formData.get('itemId')),
+    itemId,
     unit: formData.get('unit').toString().trim().toLowerCase(),
-    quantity: Number(formData.get('quantity')),
+    quantity,
     room: formData.get('room').toString().trim(),
     note: formData.get('note').toString().trim()
   };
@@ -955,6 +1110,7 @@ usageForm.addEventListener('submit', (event) => {
   saveState();
   render();
   resetUsageForm();
+  showToast('Usage record added successfully', 'success');
   scheduleSheetSync();
 });
 
@@ -974,33 +1130,22 @@ damageForm.addEventListener('submit', (event) => {
   saveState();
   render();
   resetDamageForm();
+  showToast('Damage record added successfully', 'success');
   scheduleSheetSync();
 });
 
-filterName.addEventListener('input', render);
-filterCategory.addEventListener('input', render);
-filterTags.addEventListener('input', render);
+if (filterName) filterName.addEventListener('input', render);
+if (filterCategory) filterCategory.addEventListener('input', render);
+if (filterTags) filterTags.addEventListener('input', render);
 
-async function openGoogleSyncSettings() {
-  const currentSheetId = sheetIdInput.value.toString().trim();
-  const nextSheetId = window.prompt('Enter the Google Sheet ID to sync with', currentSheetId);
-  if (!nextSheetId) {
-    return;
-  }
-
-  sheetIdInput.value = nextSheetId.trim();
-  persistSheetSettings();
-  await connectGoogleSheets();
-}
-
-googleSyncSettingsBtn.addEventListener('click', openGoogleSyncSettings);
-
+/* --- Google Connection Handler --- */
 async function connectGoogleSheets() {
   const clientId = GOOGLE_CLIENT_ID;
   const spreadsheetId = getSpreadsheetId();
 
   if (!spreadsheetId) {
-    updateSheetStatus('Enter a spreadsheet ID first.', false);
+    updateSheetStatus('Please enter a Google Sheet ID or URL.', false);
+    showToast('Spreadsheet ID is required.', 'error');
     return;
   }
 
@@ -1025,9 +1170,7 @@ async function connectGoogleSheets() {
 
     const authResult = await new Promise((resolve, reject) => {
       const handleMessage = (event) => {
-        if (event.origin !== window.location.origin) {
-          return;
-        }
+        if (event.origin !== window.location.origin) return;
 
         if (event.data && event.data.type === 'google-oauth') {
           window.removeEventListener('message', handleMessage);
@@ -1051,7 +1194,9 @@ async function connectGoogleSheets() {
 
     sheetAccessToken = authResult.accessToken || null;
     persistSheetSettings();
-    updateSheetStatus(`Connected: ${authResult.message || 'Google OAuth completed successfully.'}`, true);
+    updateSheetStatus('Connected to Google Sheets', true);
+    showToast('Successfully connected to Google Sheets!', 'success');
+
     if (sheetAccessToken) {
       await importFromSheet();
     }
@@ -1059,22 +1204,27 @@ async function connectGoogleSheets() {
     sheetAccessToken = null;
     persistSheetSettings();
     updateSheetStatus(`Connection failed: ${error.message || 'Unknown error'}`, false);
+    showToast(`Connection error: ${error.message}`, 'error');
   }
 }
 
-googleConnectBtn.addEventListener('click', connectGoogleSheets);
+if (googleConnectBtn) googleConnectBtn.addEventListener('click', connectGoogleSheets);
 
-googleDisconnectBtn.addEventListener('click', () => {
-  sheetConnected = false;
-  sheetAccessToken = null;
-  sheetAuthState = null;
-  persistSheetSettings();
-  updateSheetStatus('Disconnected from Google Sheets.', false);
-});
+if (googleDisconnectBtn) {
+  googleDisconnectBtn.addEventListener('click', () => {
+    sheetConnected = false;
+    sheetAccessToken = null;
+    sheetAuthState = null;
+    persistSheetSettings();
+    updateSheetStatus('Disconnected from Google Sheets.', false);
+    showToast('Disconnected from Google Sheets', 'info');
+  });
+}
 
 async function importFromSheet() {
   if (!canSyncWithSheet()) {
     updateSheetStatus('Connect first to import.', false);
+    showToast('Connect to Google Sheets before importing.', 'error');
     return;
   }
 
@@ -1082,7 +1232,7 @@ async function importFromSheet() {
   try {
     const metadata = await validateWorkbookStructure();
     const sheets = metadata.sheets || [];
-    const sheetNames = sheets.map((sheet) => sheet.properties.title);
+    const sheetNames = sheets.map((s) => s.properties.title);
     if (sheetNames.length === 0) {
       throw new Error('Workbook is empty. Please export first to create the required sheets.');
     }
@@ -1093,14 +1243,13 @@ async function importFromSheet() {
       return response.values || [];
     };
 
-    const dashboardRows = await readSheetValues('Dashboard');
     const masterInventoryRows = await readSheetValues('MasterInventory');
     const purchaseRows = await readSheetValues('Purchases');
     const usageRows = await readSheetValues('Usage');
     const damageRows = await readSheetValues('Damages');
 
     if (masterInventoryRows.length < 2) {
-      throw new Error('The workbook does not contain inventory records yet. Export first to populate MasterInventory.');
+      throw new Error('Workbook contains no item records in MasterInventory.');
     }
 
     const importedItems = masterInventoryRows.slice(1).map((row, index) => ({
@@ -1126,7 +1275,7 @@ async function importFromSheet() {
       quantity: Number(row[3] || 0),
       cost: Number(row[4] || 0),
       note: row[5] || ''
-    })).filter((purchase) => purchase.itemId !== 0);
+    })).filter((p) => p.itemId !== 0);
 
     const importedUsages = usageRows.slice(1).map((row, index) => ({
       id: Date.now() + index + 20000,
@@ -1136,7 +1285,7 @@ async function importFromSheet() {
       quantity: Number(row[3] || 0),
       room: row[5] || '',
       note: row[4] || ''
-    })).filter((usage) => usage.itemId !== 0);
+    })).filter((u) => u.itemId !== 0);
 
     const importedDamages = damageRows.slice(1).map((row, index) => ({
       id: Date.now() + index + 30000,
@@ -1145,32 +1294,40 @@ async function importFromSheet() {
       quantity: Number(row[2] || 0),
       location: row[4] || '',
       description: row[3] || ''
-    })).filter((damage) => damage.itemId !== 0);
+    })).filter((d) => d.itemId !== 0);
 
     items = importedItems;
     purchases = importedPurchases;
     usages = importedUsages;
     damages = importedDamages;
+
     saveState();
     render();
     resetForm();
     resetPurchaseForm();
     resetUsageForm();
     resetDamageForm();
-    updateSheetStatus(`Import complete: ${items.length} items, ${purchases.length} purchases, ${usages.length} usages, ${damages.length} damages.`, true);
+    updateSheetStatus(`Connected • Import complete (${items.length} items)`, true);
+    showToast(`Imported ${items.length} items from Google Sheet`, 'success');
   } catch (error) {
     updateSheetStatus(`Import failed: ${error.message || 'Unknown error'}`, false);
+    showToast(`Import Error: ${error.message}`, 'error');
   }
 }
 
-sheetExportBtn.addEventListener('click', async () => {
-  if (!canSyncWithSheet()) {
-    updateSheetStatus('Connect first to export.', false);
-    return;
-  }
+if (sheetImportBtn) {
+  sheetImportBtn.addEventListener('click', importFromSheet);
+}
 
-  await syncTransactionsToSheet();
-});
+if (sheetExportBtn) {
+  sheetExportBtn.addEventListener('click', async () => {
+    if (!canSyncWithSheet()) {
+      showToast('Connect to Google Sheets first to export.', 'error');
+      return;
+    }
+    await syncTransactionsToSheet();
+  });
+}
 
 inventoryList.addEventListener('click', (event) => {
   const target = event.target.closest('button[data-action]');
@@ -1181,9 +1338,7 @@ inventoryList.addEventListener('click', (event) => {
 
   if (action === 'edit') {
     const itemToEdit = items.find((item) => item.id === itemId);
-    if (itemToEdit) {
-      populateForm(itemToEdit);
-    }
+    if (itemToEdit) populateForm(itemToEdit);
     return;
   }
 
@@ -1191,20 +1346,24 @@ inventoryList.addEventListener('click', (event) => {
     const itemToDelete = items.find((item) => item.id === itemId);
     if (!itemToDelete) return;
     if (hasTransactions(itemId)) {
-      window.alert(`Cannot delete ${itemToDelete.name} because it has purchase, usage, or damage records.`);
+      showToast(`Cannot delete "${itemToDelete.name}" with existing transactions.`, 'error');
       return;
     }
 
-    const confirmed = window.confirm(`Delete ${itemToDelete.name}? This will permanently remove the item.`);
+    const confirmed = window.confirm(`Delete "${itemToDelete.name}"? This action cannot be undone.`);
     if (!confirmed) return;
 
     items = items.filter((item) => item.id !== itemId);
     saveState();
     render();
+    showToast(`Deleted "${itemToDelete.name}"`, 'info');
     scheduleSheetSync();
   }
 });
 
+/* --- Initialization --- */
+setupTabs();
+setupSyncModal();
 resetForm();
 resetPurchaseForm();
 resetUsageForm();
@@ -1213,18 +1372,28 @@ render();
 
 async function initializeGoogleSync() {
   const savedSettings = loadSheetSettings();
-  if (savedSettings.sheetId) {
+  if (savedSettings.sheetId && sheetIdInput) {
     sheetIdInput.value = savedSettings.sheetId;
   }
 
   const savedToken = localStorage.getItem(SHEET_TOKEN_KEY);
-  if (savedToken) {
+  if (savedToken && savedSettings.sheetId) {
     sheetAccessToken = savedToken;
     sheetConnected = true;
-    updateSheetStatus('Restoring Google Sheets connection...', true);
-    await importFromSheet();
+    updateSheetStatus('Verifying Google connection...', true);
+
+    try {
+      await getSpreadsheetMetadata();
+      updateSheetStatus('Connected to Google Sheets', true);
+    } catch (e) {
+      console.warn('Saved Google token expired or invalid', e);
+      sheetAccessToken = null;
+      sheetConnected = false;
+      persistSheetSettings();
+      updateSheetStatus('Token expired. Please reconnect.', false);
+    }
   } else if (savedSettings.sheetId) {
-    updateSheetStatus('Google Sheets ready. Connect to sync.', true);
+    updateSheetStatus('Google Sheet ID set. Connect to sync.', false);
   }
 }
 
