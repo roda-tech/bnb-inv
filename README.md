@@ -13,9 +13,11 @@ A modern, high-performance operational inventory web application built for Bed &
 
 ### 🔄 Use Case & Transaction Flows
 1. **Master Inventory Management**: Add, edit, or delete items. Current stock and item cost are dynamically derived from transactions.
+
 2. **Purchase Recording**:
    * Record new inventory purchases with date, item, unit, quantity, unit cost, and notes.
    * Automatically updates Master Inventory **Current Stock** and updates the **Latest Unit Cost**.
+   
 3. **Item Usage Tracking**:
    * Track supply usage across specific BnB rooms/locations.
    * Deducts quantity from Master Inventory **Current Stock**.
@@ -35,8 +37,8 @@ A modern, high-performance operational inventory web application built for Bed &
 ### Google Sheet Tab Schema
 The app automatically formats and synchronizes 5 distinct sheet tabs:
 1. **Dashboard**: Summary metrics (`Number of Low Stock`, `Current total cost`, `List of Items with Low Stock`).
-2. **MasterInventory**: (`Category`, `ItemName`, `Unit`, `CurrentStock`, `Minimum`, `ReorderQty`, `Cost`, `Storage`, `Status`, `Tags`, `Note`).
-3. **Purchases**: (`Date`, `ItemName`, `Unit`, `Quantity`, `Cost`, `Note`).
+2. **MasterInventory**: (`Category`, `ItemName`, `Unit`, `CurrentStock`, `Minimum`, `ReorderQty`, `Cost`, `Storage`, `Status`, `Tags`, `Note`, `Supplier`).
+3. **Purchases**: (`Date`, `ItemName`, `Unit`, `Quantity`, `Cost`, `Supplier`, `Note`).
 4. **Usage**: (`Date`, `ItemName`, `Unit`, `Quantity`, `Note`, `Room`).
 5. **Damages**: (`Date`, `ItemName`, `Quantity`, `Description`, `Location`).
 
@@ -51,6 +53,7 @@ The app automatically formats and synchronizes 5 distinct sheet tabs:
   - 🛒 **Purchases**
   - 📋 **Item Usage**
   - ⚠️ **Damage Tracker**
+  - 💸 **Expense Tracker** (New)
   - ⚙️ **Google Sync Settings**
 * **Standardized Form Components**: Custom styled `<select>` controls and `<input>` groups with clear typography using Google Fonts (`Plus Jakarta Sans` & `Inter`).
 * **Interactive Toast System**: Floating notifications giving instant visual feedback for transaction saves, sync successes, and warnings.
@@ -62,3 +65,37 @@ The app automatically formats and synchronizes 5 distinct sheet tabs:
 1. Clone or open the repository directory.
 2. Open `index.html` in any modern web browser or serve via a local web server (e.g., Live Server or `npx serve .`).
 3. Click **Google Sync Settings** in the top navigation or section header to enter your Google Sheet ID and connect your Google Account.
+
+
+## TODO List
+- **Master List Updates**
+    - Add supplier per item
+    - Add ability to purchase item from master list, automatically setting Cost to latest unit cost, supplier and current stock to reorder quantity
+    - Add ability to add image per item
+    - Make status changeable, is in stock, low stock and inactive, if inactive then it should be displayed on low stock list. Retain low stock logic and ui design, excluding items with inactive status from master list.   
+- **Google Sheet Connection Updates**
+    - if Google Sheet is disconnected then pop up to reconnect should be displayed first, then ask user if they want to sync or not.
+    - If master list is updated locally and is ahead of Google Sheet, then pop up to sync should be displayed then force export to sheet should be done after user confirmation.
+    - If Google Sheet is updated locally and is ahead of master list, then pop up to sync should be displayed then force import from sheet should be done after user confirmation.
+- **Purchases**
+    - add ability to edit/delete purchase records, if record is deleted then the latest unit cost should be updated to the next latest unit cost, and if no other records are available then set unit cost to 0.
+    - separate note and supplier field
+    - add image per purchase, should update item image when item is updated, set image to image from latest transaction when updated.
+   
+- **Expense Tracker** (New)
+   - Types of Expenses
+      - Supplies
+      - Maintenance
+      - Cleaner
+      - Electricity Bill
+      - Water Bill
+      - Internet Bill
+      - Association Dues
+      - Other
+   - Add date of payment
+   - Description
+   - Amount
+
+
+
+

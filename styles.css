@@ -261,6 +261,7 @@ button, input, select, textarea {
 .stat-icon.warning { background: var(--warning-light); color: var(--warning); }
 .stat-icon.accent { background: var(--accent-light); color: var(--accent); }
 .stat-icon.success { background: var(--success-light); color: var(--success); }
+.stat-icon.info { background: #f3e8ff; color: #7e22ce; }
 
 .stat-info {
   display: flex;

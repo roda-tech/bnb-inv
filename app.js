@@ -657,6 +657,13 @@ function renderStats() {
         <span class="stat-val">₱${totalValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
       </div>
     </div>
+    <div class="stat-card">
+      <div class="stat-icon info">📍</div>
+      <div class="stat-info">
+        <span class="stat-label">Storage Locations</span>
+        <span class="stat-val">${storageLocations}</span>
+      </div>
+    </div>
   `;
 }
 
@@ -897,6 +904,10 @@ function renderPurchases() {
         </div>
 
         ${p.note ? `<p class="card-notes">Supplier/Note: ${p.note}</p>` : ''}
+
+        <div class="card-actions">
+          <button type="button" class="btn btn-secondary btn-sm" data-action="delete-purchase" data-id="${p.id}">Delete Record</button>
+        </div>
       `;
 
       purchaseList.appendChild(card);
@@ -938,6 +949,10 @@ function renderUsages() {
         </div>
 
         ${u.note ? `<p class="card-notes">Note: ${u.note}</p>` : ''}
+
+        <div class="card-actions">
+          <button type="button" class="btn btn-secondary btn-sm" data-action="delete-usage" data-id="${u.id}">Delete Record</button>
+        </div>
       `;
 
       usageList.appendChild(card);
@@ -979,6 +994,10 @@ function renderDamages() {
         </div>
 
         ${d.description ? `<p class="card-notes">Details: ${d.description}</p>` : ''}
+
+        <div class="card-actions">
+          <button type="button" class="btn btn-secondary btn-sm" data-action="delete-damage" data-id="${d.id}">Delete Record</button>
+        </div>
       `;
 
       damageList.appendChild(card);
@@ -1360,6 +1379,69 @@ inventoryList.addEventListener('click', (event) => {
     scheduleSheetSync();
   }
 });
+
+if (purchaseList) {
+  purchaseList.addEventListener('click', (event) => {
+    const target = event.target.closest('button[data-action="delete-purchase"]');
+    if (!target) return;
+    const purchaseId = Number(target.dataset.id);
+    const purchaseToDelete = purchases.find((p) => p.id === purchaseId);
+    if (!purchaseToDelete) return;
+    const item = items.find((i) => i.id === purchaseToDelete.itemId);
+    const itemName = item ? item.name : 'Unknown Item';
+
+    const confirmed = window.confirm(`Delete purchase record for "${itemName}" (${purchaseToDelete.quantity} ${purchaseToDelete.unit})?`);
+    if (!confirmed) return;
+
+    purchases = purchases.filter((p) => p.id !== purchaseId);
+    saveState();
+    render();
+    showToast(`Deleted purchase record for "${itemName}"`, 'info');
+    scheduleSheetSync();
+  });
+}
+
+if (usageList) {
+  usageList.addEventListener('click', (event) => {
+    const target = event.target.closest('button[data-action="delete-usage"]');
+    if (!target) return;
+    const usageId = Number(target.dataset.id);
+    const usageToDelete = usages.find((u) => u.id === usageId);
+    if (!usageToDelete) return;
+    const item = items.find((i) => i.id === usageToDelete.itemId);
+    const itemName = item ? item.name : 'Unknown Item';
+
+    const confirmed = window.confirm(`Delete usage record for "${itemName}" (${usageToDelete.quantity} ${usageToDelete.unit})?`);
+    if (!confirmed) return;
+
+    usages = usages.filter((u) => u.id !== usageId);
+    saveState();
+    render();
+    showToast(`Deleted usage record for "${itemName}"`, 'info');
+    scheduleSheetSync();
+  });
+}
+
+if (damageList) {
+  damageList.addEventListener('click', (event) => {
+    const target = event.target.closest('button[data-action="delete-damage"]');
+    if (!target) return;
+    const damageId = Number(target.dataset.id);
+    const damageToDelete = damages.find((d) => d.id === damageId);
+    if (!damageToDelete) return;
+    const item = items.find((i) => i.id === damageToDelete.itemId);
+    const itemName = item ? item.name : 'Unknown Item';
+
+    const confirmed = window.confirm(`Delete damage record for "${itemName}" (${damageToDelete.quantity} units)?`);
+    if (!confirmed) return;
+
+    damages = damages.filter((d) => d.id !== damageId);
+    saveState();
+    render();
+    showToast(`Deleted damage record for "${itemName}"`, 'info');
+    scheduleSheetSync();
+  });
+}
 
 /* --- Initialization --- */
 setupTabs();
