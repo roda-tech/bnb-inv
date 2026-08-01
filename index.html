@@ -200,9 +200,10 @@
           <aside class="panel side-panel">
             <div class="panel-header">
               <div>
-                <h2>Record Purchase</h2>
+                <h2 id="purchase-form-title">Record Purchase</h2>
                 <p class="panel-subtitle">Adds stock to Master Inventory</p>
               </div>
+              <button type="button" id="cancel-purchase-edit" class="btn btn-ghost btn-sm hidden">Cancel edit</button>
             </div>
             <form id="purchase-form" class="styled-form">
               <div class="input-group">
@@ -236,7 +237,7 @@
                 <input type="text" id="purchase-note" name="note" placeholder="Supplier or invoice notes" />
               </div>
 
-              <button type="submit" class="btn btn-primary btn-full">Record Purchase</button>
+              <button type="submit" id="purchase-submit-btn" class="btn btn-primary btn-full">Record Purchase</button>
             </form>
           </aside>
         </div>
@@ -258,9 +259,10 @@
           <aside class="panel side-panel">
             <div class="panel-header">
               <div>
-                <h2>Record Usage</h2>
+                <h2 id="usage-form-title">Record Usage</h2>
                 <p class="panel-subtitle">Deducts stock from Master Inventory</p>
               </div>
+              <button type="button" id="cancel-usage-edit" class="btn btn-ghost btn-sm hidden">Cancel edit</button>
             </div>
             <form id="usage-form" class="styled-form">
               <div class="input-group">
@@ -294,7 +296,7 @@
                 <input type="text" id="usage-note" name="note" placeholder="Turnover details or guest request" />
               </div>
 
-              <button type="submit" class="btn btn-primary btn-full">Record Usage</button>
+              <button type="submit" id="usage-submit-btn" class="btn btn-primary btn-full">Record Usage</button>
             </form>
           </aside>
         </div>
@@ -316,9 +318,10 @@
           <aside class="panel side-panel">
             <div class="panel-header">
               <div>
-                <h2>Record Damage</h2>
+                <h2 id="damage-form-title">Record Damage</h2>
                 <p class="panel-subtitle">Deducts stock from Master Inventory</p>
               </div>
+              <button type="button" id="cancel-damage-edit" class="btn btn-ghost btn-sm hidden">Cancel edit</button>
             </div>
             <form id="damage-form" class="styled-form">
               <div class="input-group">
@@ -346,7 +349,7 @@
                 <input type="text" id="damage-description" name="description" placeholder="e.g. Stained during guest stay" />
               </div>
 
-              <button type="submit" class="btn btn-primary btn-full">Record Damage</button>
+              <button type="submit" id="damage-submit-btn" class="btn btn-primary btn-full">Record Damage</button>
             </form>
           </aside>
         </div>

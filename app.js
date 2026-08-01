@@ -19,6 +19,9 @@ let purchases = loadPurchases();
 let usages = loadUsages();
 let damages = loadDamages();
 let editingItemId = null;
+let editingPurchaseId = null;
+let editingUsageId = null;
+let editingDamageId = null;
 
 // DOM Elements
 const inventoryList = document.getElementById('inventory-list');
@@ -39,15 +42,24 @@ const purchaseForm = document.getElementById('purchase-form');
 const purchaseList = document.getElementById('purchase-list');
 const purchaseItemSelect = purchaseForm ? purchaseForm.elements.itemId : null;
 const purchaseUnitInput = purchaseForm ? purchaseForm.elements.unit : null;
+const purchaseFormTitle = document.getElementById('purchase-form-title');
+const cancelPurchaseEditBtn = document.getElementById('cancel-purchase-edit');
+const purchaseSubmitBtn = document.getElementById('purchase-submit-btn');
 
 const usageForm = document.getElementById('usage-form');
 const usageList = document.getElementById('usage-list');
 const usageItemSelect = usageForm ? usageForm.elements.itemId : null;
 const usageUnitInput = usageForm ? usageForm.elements.unit : null;
+const usageFormTitle = document.getElementById('usage-form-title');
+const cancelUsageEditBtn = document.getElementById('cancel-usage-edit');
+const usageSubmitBtn = document.getElementById('usage-submit-btn');
 
 const damageForm = document.getElementById('damage-form');
 const damageList = document.getElementById('damage-list');
 const damageItemSelect = damageForm ? damageForm.elements.itemId : null;
+const damageFormTitle = document.getElementById('damage-form-title');
+const cancelDamageEditBtn = document.getElementById('cancel-damage-edit');
+const damageSubmitBtn = document.getElementById('damage-submit-btn');
 
 const unitDatalist = document.getElementById('unit-options');
 const toastContainer = document.getElementById('toast-container');
@@ -766,6 +778,10 @@ function resetForm() {
 function resetPurchaseForm() {
   if (!purchaseForm) return;
   purchaseForm.reset();
+  editingPurchaseId = null;
+  if (purchaseFormTitle) purchaseFormTitle.textContent = 'Record Purchase';
+  if (purchaseSubmitBtn) purchaseSubmitBtn.textContent = 'Record Purchase';
+  if (cancelPurchaseEditBtn) cancelPurchaseEditBtn.classList.add('hidden');
   purchaseForm.elements.date.value = new Date().toISOString().slice(0, 10);
   if (items.length > 0) {
     purchaseItemSelect.value = items[0].id;
@@ -776,6 +792,10 @@ function resetPurchaseForm() {
 function resetUsageForm() {
   if (!usageForm) return;
   usageForm.reset();
+  editingUsageId = null;
+  if (usageFormTitle) usageFormTitle.textContent = 'Record Usage';
+  if (usageSubmitBtn) usageSubmitBtn.textContent = 'Record Usage';
+  if (cancelUsageEditBtn) cancelUsageEditBtn.classList.add('hidden');
   usageForm.elements.date.value = new Date().toISOString().slice(0, 10);
   if (items.length > 0) {
     usageItemSelect.value = items[0].id;
@@ -786,11 +806,62 @@ function resetUsageForm() {
 function resetDamageForm() {
   if (!damageForm) return;
   damageForm.reset();
+  editingDamageId = null;
+  if (damageFormTitle) damageFormTitle.textContent = 'Record Damage';
+  if (damageSubmitBtn) damageSubmitBtn.textContent = 'Record Damage';
+  if (cancelDamageEditBtn) cancelDamageEditBtn.classList.add('hidden');
   damageForm.elements.date.value = new Date().toISOString().slice(0, 10);
   if (items.length > 0) {
     damageItemSelect.value = items[0].id;
     damageForm.elements.location.value = items[0].storage;
   }
+}
+
+function populatePurchaseForm(purchase) {
+  if (!purchaseForm) return;
+  editingPurchaseId = purchase.id;
+  if (purchaseFormTitle) purchaseFormTitle.textContent = 'Edit Purchase';
+  if (purchaseSubmitBtn) purchaseSubmitBtn.textContent = 'Update Purchase';
+  if (cancelPurchaseEditBtn) cancelPurchaseEditBtn.classList.remove('hidden');
+
+  purchaseForm.elements.date.value = purchase.date;
+  purchaseForm.elements.itemId.value = purchase.itemId;
+  purchaseForm.elements.unit.value = purchase.unit;
+  purchaseForm.elements.quantity.value = purchase.quantity;
+  purchaseForm.elements.cost.value = purchase.cost;
+  purchaseForm.elements.note.value = purchase.note;
+  purchaseForm.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+function populateUsageForm(usage) {
+  if (!usageForm) return;
+  editingUsageId = usage.id;
+  if (usageFormTitle) usageFormTitle.textContent = 'Edit Usage';
+  if (usageSubmitBtn) usageSubmitBtn.textContent = 'Update Usage';
+  if (cancelUsageEditBtn) cancelUsageEditBtn.classList.remove('hidden');
+
+  usageForm.elements.date.value = usage.date;
+  usageForm.elements.itemId.value = usage.itemId;
+  usageForm.elements.unit.value = usage.unit;
+  usageForm.elements.quantity.value = usage.quantity;
+  usageForm.elements.room.value = usage.room;
+  usageForm.elements.note.value = usage.note;
+  usageForm.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+function populateDamageForm(damage) {
+  if (!damageForm) return;
+  editingDamageId = damage.id;
+  if (damageFormTitle) damageFormTitle.textContent = 'Edit Damage';
+  if (damageSubmitBtn) damageSubmitBtn.textContent = 'Update Damage';
+  if (cancelDamageEditBtn) cancelDamageEditBtn.classList.remove('hidden');
+
+  damageForm.elements.date.value = damage.date;
+  damageForm.elements.itemId.value = damage.itemId;
+  damageForm.elements.quantity.value = damage.quantity;
+  damageForm.elements.location.value = damage.location;
+  damageForm.elements.description.value = damage.description;
+  damageForm.scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
 
 function populateForm(item) {
@@ -993,6 +1064,7 @@ function renderPurchases() {
         ${p.note ? `<p class="card-notes">Supplier/Note: ${p.note}</p>` : ''}
 
         <div class="card-actions">
+          <button type="button" class="btn btn-secondary btn-sm" data-action="edit-purchase" data-id="${p.id}">Edit</button>
           <button type="button" class="btn btn-secondary btn-sm" data-action="delete-purchase" data-id="${p.id}">Delete Record</button>
         </div>
       `;
@@ -1038,6 +1110,7 @@ function renderUsages() {
         ${u.note ? `<p class="card-notes">Note: ${u.note}</p>` : ''}
 
         <div class="card-actions">
+          <button type="button" class="btn btn-secondary btn-sm" data-action="edit-usage" data-id="${u.id}">Edit</button>
           <button type="button" class="btn btn-secondary btn-sm" data-action="delete-usage" data-id="${u.id}">Delete Record</button>
         </div>
       `;
@@ -1083,6 +1156,7 @@ function renderDamages() {
         ${d.description ? `<p class="card-notes">Details: ${d.description}</p>` : ''}
 
         <div class="card-actions">
+          <button type="button" class="btn btn-secondary btn-sm" data-action="edit-damage" data-id="${d.id}">Edit</button>
           <button type="button" class="btn btn-secondary btn-sm" data-action="delete-damage" data-id="${d.id}">Delete Record</button>
         </div>
       `;
@@ -1139,6 +1213,18 @@ if (cancelEditBtn) {
   cancelEditBtn.addEventListener('click', resetForm);
 }
 
+if (cancelPurchaseEditBtn) {
+  cancelPurchaseEditBtn.addEventListener('click', resetPurchaseForm);
+}
+
+if (cancelUsageEditBtn) {
+  cancelUsageEditBtn.addEventListener('click', resetUsageForm);
+}
+
+if (cancelDamageEditBtn) {
+  cancelDamageEditBtn.addEventListener('click', resetDamageForm);
+}
+
 if (triggerAddItemBtn) {
   triggerAddItemBtn.addEventListener('click', () => {
     if (!checkMetadataAndReconnectImport()) {
@@ -1178,8 +1264,7 @@ purchaseForm.addEventListener('submit', (event) => {
   }
 
   const formData = new FormData(purchaseForm);
-  const purchase = {
-    id: Date.now(),
+  const purchasePayload = {
     date: formData.get('date').toString(),
     itemId: Number(formData.get('itemId')),
     unit: formData.get('unit').toString().trim().toLowerCase(),
@@ -1188,11 +1273,17 @@ purchaseForm.addEventListener('submit', (event) => {
     note: formData.get('note').toString().trim()
   };
 
-  purchases.unshift(purchase);
+  if (editingPurchaseId !== null) {
+    purchases = purchases.map((purchase) => purchase.id === editingPurchaseId ? { ...purchase, ...purchasePayload } : purchase);
+    showToast('Purchase transaction updated successfully', 'success');
+  } else {
+    purchases.unshift({ id: Date.now(), ...purchasePayload });
+    showToast('Purchase transaction recorded successfully', 'success');
+  }
+
   saveState();
   render();
   resetPurchaseForm();
-  showToast('Purchase transaction recorded successfully', 'success');
   scheduleSheetSync(actionDescription = 'purchase transaction');
 });
 
@@ -1214,8 +1305,7 @@ usageForm.addEventListener('submit', (event) => {
     }
   }
 
-  const usage = {
-    id: Date.now(),
+  const usagePayload = {
     date: formData.get('date').toString(),
     itemId,
     unit: formData.get('unit').toString().trim().toLowerCase(),
@@ -1224,11 +1314,17 @@ usageForm.addEventListener('submit', (event) => {
     note: formData.get('note').toString().trim()
   };
 
-  usages.unshift(usage);
+  if (editingUsageId !== null) {
+    usages = usages.map((usage) => usage.id === editingUsageId ? { ...usage, ...usagePayload } : usage);
+    showToast('Usage record updated successfully', 'success');
+  } else {
+    usages.unshift({ id: Date.now(), ...usagePayload });
+    showToast('Usage record added successfully', 'success');
+  }
+
   saveState();
   render();
   resetUsageForm();
-  showToast('Usage record added successfully', 'success');
   syncTransactionsToSheet(actionDescription = 'usage transaction');
 });
 
@@ -1239,8 +1335,7 @@ damageForm.addEventListener('submit', (event) => {
   }
 
   const formData = new FormData(damageForm);
-  const damage = {
-    id: Date.now(),
+  const damagePayload = {
     date: formData.get('date').toString(),
     itemId: Number(formData.get('itemId')),
     quantity: Number(formData.get('quantity')),
@@ -1248,11 +1343,17 @@ damageForm.addEventListener('submit', (event) => {
     description: formData.get('description').toString().trim()
   };
 
-  damages.unshift(damage);
+  if (editingDamageId !== null) {
+    damages = damages.map((damage) => damage.id === editingDamageId ? { ...damage, ...damagePayload } : damage);
+    showToast('Damage record updated successfully', 'success');
+  } else {
+    damages.unshift({ id: Date.now(), ...damagePayload });
+    showToast('Damage record added successfully', 'success');
+  }
+
   saveState();
   render();
   resetDamageForm();
-  showToast('Damage record added successfully', 'success');
   syncTransactionsToSheet(actionDescription = 'damage transaction');
 });
 
@@ -1490,7 +1591,7 @@ inventoryList.addEventListener('click', (event) => {
 
 if (purchaseList) {
   purchaseList.addEventListener('click', (event) => {
-    const target = event.target.closest('button[data-action="delete-purchase"]');
+    const target = event.target.closest('button[data-action]');
     if (!target) return;
 
     if (!checkMetadataAndReconnectImport()) {
@@ -1498,6 +1599,14 @@ if (purchaseList) {
     }
 
     const purchaseId = Number(target.dataset.id);
+    const action = target.dataset.action;
+
+    if (action === 'edit-purchase') {
+      const purchaseToEdit = purchases.find((p) => p.id === purchaseId);
+      if (purchaseToEdit) populatePurchaseForm(purchaseToEdit);
+      return;
+    }
+
     const purchaseToDelete = purchases.find((p) => p.id === purchaseId);
     if (!purchaseToDelete) return;
     const item = items.find((i) => i.id === purchaseToDelete.itemId);
@@ -1516,7 +1625,7 @@ if (purchaseList) {
 
 if (usageList) {
   usageList.addEventListener('click', (event) => {
-    const target = event.target.closest('button[data-action="delete-usage"]');
+    const target = event.target.closest('button[data-action]');
     
     if (!checkMetadataAndReconnectImport()) {
       return;
@@ -1524,6 +1633,14 @@ if (usageList) {
 
     if (!target) return;
     const usageId = Number(target.dataset.id);
+    const action = target.dataset.action;
+
+    if (action === 'edit-usage') {
+      const usageToEdit = usages.find((u) => u.id === usageId);
+      if (usageToEdit) populateUsageForm(usageToEdit);
+      return;
+    }
+
     const usageToDelete = usages.find((u) => u.id === usageId);
     if (!usageToDelete) return;
     const item = items.find((i) => i.id === usageToDelete.itemId);
@@ -1542,7 +1659,7 @@ if (usageList) {
 
 if (damageList) {
   damageList.addEventListener('click', (event) => {
-    const target = event.target.closest('button[data-action="delete-damage"]');
+    const target = event.target.closest('button[data-action]');
     
     if (!checkMetadataAndReconnectImport()) {
       return;
@@ -1550,6 +1667,14 @@ if (damageList) {
 
     if (!target) return;    
     const damageId = Number(target.dataset.id);
+    const action = target.dataset.action;
+
+    if (action === 'edit-damage') {
+      const damageToEdit = damages.find((d) => d.id === damageId);
+      if (damageToEdit) populateDamageForm(damageToEdit);
+      return;
+    }
+
     const damageToDelete = damages.find((d) => d.id === damageId);
     if (!damageToDelete) return;
     const item = items.find((i) => i.id === damageToDelete.itemId);
