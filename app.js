@@ -4,6 +4,8 @@ const USAGE_KEY = 'bnb-inventory-manager-usage';
 const DAMAGE_KEY = 'bnb-inventory-manager-damage';
 const SHEET_SETTINGS_KEY = 'bnb-inventory-sheet-settings';
 const SHEET_TOKEN_KEY = 'bnb-inventory-sheet-token';
+const LAST_LOCAL_UPDATE_KEY = 'bnb-inventory-last-local-update';
+const LAST_REMOTE_SYNC_KEY = 'bnb-inventory-last-remote-sync';
 
 const GOOGLE_CLIENT_ID = '619005833964-795a62342hefkqc9t3qv4afmb8clia5e.apps.googleusercontent.com';
 
@@ -64,10 +66,74 @@ const sheetImportBtn = document.getElementById('sheet-import');
 const sheetExportBtn = document.getElementById('sheet-export');
 const sheetStatus = document.getElementById('sheet-status');
 
+// Sync Prompt Modal Elements
+const syncPromptModal = document.getElementById('sync-prompt-modal');
+const syncPromptTitle = document.getElementById('sync-prompt-title');
+const syncPromptMessage = document.getElementById('sync-prompt-message');
+const syncPromptConfirmBtn = document.getElementById('sync-prompt-confirm-btn');
+const syncPromptCancelBtn = document.getElementById('sync-prompt-cancel-btn');
+const closeSyncPromptBtn = document.getElementById('close-sync-prompt-btn');
+
 let sheetConnected = false;
 let sheetAccessToken = null;
 let sheetAuthState = null;
 let lastSheetSync = null;
+let activeSyncPrompt = null;
+
+function markLocalUpdate() {
+  localStorage.setItem(LAST_LOCAL_UPDATE_KEY, Date.now().toString());
+}
+
+function markRemoteSync() {
+  const now = Date.now().toString();
+  localStorage.setItem(LAST_REMOTE_SYNC_KEY, now);
+  localStorage.setItem(LAST_LOCAL_UPDATE_KEY, now);
+}
+
+function getLastLocalUpdate() {
+  return Number(localStorage.getItem(LAST_LOCAL_UPDATE_KEY) || 0);
+}
+
+function getLastRemoteSync() {
+  return Number(localStorage.getItem(LAST_REMOTE_SYNC_KEY) || 0);
+}
+
+function showSyncPromptModal({ title, message, confirmText = 'Confirm & Sync', cancelText = 'Cancel / Skip', onConfirm, onCancel }) {
+  if (!syncPromptModal) return;
+
+  if (syncPromptTitle) syncPromptTitle.textContent = title;
+  if (syncPromptMessage) syncPromptMessage.textContent = message;
+  if (syncPromptConfirmBtn) syncPromptConfirmBtn.textContent = confirmText;
+  if (syncPromptCancelBtn) syncPromptCancelBtn.textContent = cancelText;
+
+  activeSyncPrompt = { onConfirm, onCancel };
+  syncPromptModal.classList.remove('hidden');
+}
+
+function closeSyncPromptModal() {
+  if (syncPromptModal) syncPromptModal.classList.add('hidden');
+  activeSyncPrompt = null;
+}
+
+if (syncPromptConfirmBtn) {
+  syncPromptConfirmBtn.addEventListener('click', async () => {
+    const callback = activeSyncPrompt?.onConfirm;
+    closeSyncPromptModal();
+    if (callback) await callback();
+  });
+}
+
+if (syncPromptCancelBtn) {
+  syncPromptCancelBtn.addEventListener('click', () => {
+    const callback = activeSyncPrompt?.onCancel;
+    closeSyncPromptModal();
+    if (callback) callback();
+  });
+}
+
+if (closeSyncPromptBtn) {
+  closeSyncPromptBtn.addEventListener('click', closeSyncPromptModal);
+}
 
 /* --- Toast Notification System --- */
 function showToast(message, type = 'info', duration = 4000) {
@@ -534,15 +600,38 @@ function canSyncWithSheet() {
   return sheetConnected && spreadsheetId !== '' && sheetAccessToken;
 }
 
-async function syncTransactionsToSheet(silent = false) {
+async function checkMetadataAndReconnectImport() {
+  let isOk = true;
+  try { 
+    const metadata = await getSpreadsheetMetadata();
+  } catch (error) {
+    isOk = false;
+    showSyncPromptModal({
+      title: 'Google Sheet Disconnected',
+      message: `Google Sheet is currently disconnected. Reconnect your Google Account to continue. This will also import sheet data to your local inventory.`,
+      confirmText: 'Connect & Sync Now',
+      onConfirm: async () => {
+        await connectGoogleSheets();
+      }
+    });
+  }
+
+  return isOk;
+}
+
+async function syncTransactionsToSheet(silent = false , actionDescription = `transaction`) {
+  console.log("DEBUG TANGINA NAMAN EH");
+  
   if (!canSyncWithSheet()) {
     if (!silent) showToast('Not connected to Google Sheets.', 'error');
     return;
   }
 
   updateSheetStatus('Syncing data to Google Sheet...', true);
+
   try {
-    const metadata = await getSpreadsheetMetadata();
+    console.log("DEBUG force sync data to sheet");
+    metadata = await getSpreadsheetMetadata();
     const existingSheets = (metadata.sheets || []).map((s) => s.properties.title);
     const missingSheets = Object.keys(SHEET_SPECS).filter((name) => !existingSheets.includes(name));
     if (missingSheets.length > 0) {
@@ -576,9 +665,7 @@ async function syncTransactionsToSheet(silent = false) {
 }
 
 function scheduleSheetSync() {
-  if (canSyncWithSheet()) {
-    syncTransactionsToSheet(true);
-  }
+  syncTransactionsToSheet(actionDescription = 'update');
 }
 
 function hasTransactions(itemId) {
@@ -1045,7 +1132,7 @@ form.addEventListener('submit', (event) => {
   saveState();
   render();
   resetForm();
-  scheduleSheetSync();
+  scheduleSheetSync(actionDescription = 'master item save');
 });
 
 if (cancelEditBtn) {
@@ -1054,6 +1141,10 @@ if (cancelEditBtn) {
 
 if (triggerAddItemBtn) {
   triggerAddItemBtn.addEventListener('click', () => {
+    if (!checkMetadataAndReconnectImport()) {
+      return;
+    }
+
     resetForm();
     form.scrollIntoView({ behavior: 'smooth', block: 'center' });
   });
@@ -1082,6 +1173,10 @@ damageItemSelect.addEventListener('change', () => {
 
 purchaseForm.addEventListener('submit', (event) => {
   event.preventDefault();
+  if (!checkMetadataAndReconnectImport()) {
+    return;
+  }
+
   const formData = new FormData(purchaseForm);
   const purchase = {
     id: Date.now(),
@@ -1098,11 +1193,15 @@ purchaseForm.addEventListener('submit', (event) => {
   render();
   resetPurchaseForm();
   showToast('Purchase transaction recorded successfully', 'success');
-  scheduleSheetSync();
+  scheduleSheetSync(actionDescription = 'purchase transaction');
 });
 
 usageForm.addEventListener('submit', (event) => {
   event.preventDefault();
+  if (!checkMetadataAndReconnectImport()) {
+    return;
+  }
+
   const formData = new FormData(usageForm);
   const itemId = Number(formData.get('itemId'));
   const quantity = Number(formData.get('quantity'));
@@ -1130,11 +1229,15 @@ usageForm.addEventListener('submit', (event) => {
   render();
   resetUsageForm();
   showToast('Usage record added successfully', 'success');
-  scheduleSheetSync();
+  syncTransactionsToSheet(actionDescription = 'usage transaction');
 });
 
-damageForm.addEventListener('submit', (event) => {
+damageForm.addEventListener('submit', (event) => { 
   event.preventDefault();
+  if (!checkMetadataAndReconnectImport()) {
+    return;
+  }
+
   const formData = new FormData(damageForm);
   const damage = {
     id: Date.now(),
@@ -1150,7 +1253,7 @@ damageForm.addEventListener('submit', (event) => {
   render();
   resetDamageForm();
   showToast('Damage record added successfully', 'success');
-  scheduleSheetSync();
+  syncTransactionsToSheet(actionDescription = 'damage transaction');
 });
 
 if (filterName) filterName.addEventListener('input', render);
@@ -1350,6 +1453,11 @@ if (sheetExportBtn) {
 
 inventoryList.addEventListener('click', (event) => {
   const target = event.target.closest('button[data-action]');
+
+  if (!checkMetadataAndReconnectImport()) {
+    return;
+  }
+
   if (!target) return;
 
   const itemId = Number(target.dataset.id);
@@ -1376,7 +1484,7 @@ inventoryList.addEventListener('click', (event) => {
     saveState();
     render();
     showToast(`Deleted "${itemToDelete.name}"`, 'info');
-    scheduleSheetSync();
+    syncTransactionsToSheet(actionDescription = 'item deletion');
   }
 });
 
@@ -1384,6 +1492,11 @@ if (purchaseList) {
   purchaseList.addEventListener('click', (event) => {
     const target = event.target.closest('button[data-action="delete-purchase"]');
     if (!target) return;
+
+    if (!checkMetadataAndReconnectImport()) {
+      return;
+    }
+
     const purchaseId = Number(target.dataset.id);
     const purchaseToDelete = purchases.find((p) => p.id === purchaseId);
     if (!purchaseToDelete) return;
@@ -1397,13 +1510,18 @@ if (purchaseList) {
     saveState();
     render();
     showToast(`Deleted purchase record for "${itemName}"`, 'info');
-    scheduleSheetSync();
+    syncTransactionsToSheet(actionDescription = 'purchase deletion');
   });
 }
 
 if (usageList) {
   usageList.addEventListener('click', (event) => {
     const target = event.target.closest('button[data-action="delete-usage"]');
+    
+    if (!checkMetadataAndReconnectImport()) {
+      return;
+    }
+
     if (!target) return;
     const usageId = Number(target.dataset.id);
     const usageToDelete = usages.find((u) => u.id === usageId);
@@ -1418,14 +1536,19 @@ if (usageList) {
     saveState();
     render();
     showToast(`Deleted usage record for "${itemName}"`, 'info');
-    scheduleSheetSync();
+    syncTransactionsToSheet(actionDescription = 'usage deletion');
   });
 }
 
 if (damageList) {
   damageList.addEventListener('click', (event) => {
     const target = event.target.closest('button[data-action="delete-damage"]');
-    if (!target) return;
+    
+    if (!checkMetadataAndReconnectImport()) {
+      return;
+    }
+
+    if (!target) return;    
     const damageId = Number(target.dataset.id);
     const damageToDelete = damages.find((d) => d.id === damageId);
     if (!damageToDelete) return;
@@ -1439,7 +1562,7 @@ if (damageList) {
     saveState();
     render();
     showToast(`Deleted damage record for "${itemName}"`, 'info');
-    scheduleSheetSync();
+    syncTransactionsToSheet(actionDescription = 'damage deletion');
   });
 }
 
@@ -1469,10 +1592,8 @@ async function initializeGoogleSync() {
       updateSheetStatus('Connected to Google Sheets', true);
     } catch (e) {
       console.warn('Saved Google token expired or invalid', e);
-      sheetAccessToken = null;
-      sheetConnected = false;
+      checkMetadataAndReconnectImport();
       persistSheetSettings();
-      updateSheetStatus('Token expired. Please reconnect.', false);
     }
   } else if (savedSettings.sheetId) {
     updateSheetStatus('Google Sheet ID set. Connect to sync.', false);

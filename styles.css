@@ -485,13 +485,17 @@ button, input, select, textarea {
 }
 
 .btn-secondary {
-  background: #f1f5f9;
+  background: #ebc7f5;
   color: var(--text-main);
   border: 1px solid var(--border-color);
 }
 
+.btn-secondary:disabled {
+  background: #bcc1c7;
+}
+
 .btn-secondary:hover {
-  background: #e2e8f0;
+  background: #ec76d8;
 }
 
 .btn-ghost {
@@ -745,6 +749,13 @@ button, input, select, textarea {
 .helper-text {
   font-size: 0.775rem;
   color: var(--text-muted);
+}
+
+.sync-prompt-message {
+  font-size: 0.95rem;
+  color: var(--text-main);
+  line-height: 1.6;
+  margin: 0;
 }
 
 /* Toast Notifications */
