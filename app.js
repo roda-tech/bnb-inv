@@ -31,6 +31,7 @@ const lowStockCountBadge = document.getElementById('low-stock-count-badge');
 const filterName = document.getElementById('filter-name');
 const filterCategory = document.getElementById('filter-category');
 const filterTags = document.getElementById('filter-tags');
+const filterSort = document.getElementById('filter-sort');
 
 const form = document.getElementById('item-form');
 const formTitle = document.getElementById('form-title');
@@ -181,6 +182,7 @@ function normalizeItems(itemsToNormalize) {
     unit: (item.unit ?? 'units').toString().trim().toLowerCase(),
     storage: item.storage ?? 'Unassigned',
     tags: item.tags ?? '',
+    supplier: item.supplier ?? '',
     notes: item.notes ?? ''
   }));
 }
@@ -194,6 +196,7 @@ function normalizePurchases(purchasesToNormalize) {
     cost: Number(purchase.cost ?? 0),
     date: purchase.date || new Date().toISOString().slice(0, 10),
     unit: purchase.unit ? purchase.unit.toString().trim().toLowerCase() : '',
+    supplier: purchase.supplier ?? '',
     note: purchase.note ?? ''
   }));
 }
@@ -402,6 +405,20 @@ function setupTabs() {
   });
 }
 
+function selectTab(selectedTab){
+  const tabButtons = document.querySelectorAll('.nav-tab');
+  const tabPanels = document.querySelectorAll('.tab-panel');
+  tabButtons.forEach((btn) => {
+    const isActive = btn.dataset.tab === selectedTab;
+    btn.classList.toggle('active', isActive);
+    btn.setAttribute('aria-selected', isActive ? 'true' : 'false');
+  });
+  tabPanels.forEach((panel) => {
+    const isActive = panel.id === selectedTab;
+    panel.classList.toggle('active', isActive);
+  });
+}
+
 /* --- Modal Dialog Handling --- */
 function setupSyncModal() {
   if (!syncModal) return;
@@ -453,8 +470,8 @@ function handleGoogleOAuthRedirect() {
 
 const SHEET_SPECS = {
   Dashboard: ['Number of Low Stock', 'Current total cost', 'List of Items with Low Stock'],
-  MasterInventory: ['Category', 'ItemName', 'Unit', 'CurrentStock', 'Minimum', 'ReorderQty', 'Cost', 'Storage', 'Status', 'Tags', 'Note'],
-  Purchases: ['Date', 'ItemName', 'Unit', 'Quantity', 'Cost', 'Note'],
+  MasterInventory: ['Category', 'ItemName', 'Unit', 'CurrentStock', 'Minimum', 'ReorderQty', 'Cost', 'Storage', 'Status', 'Tags', 'Supplier', 'Note'],
+  Purchases: ['Date', 'ItemName', 'Unit', 'Quantity', 'Cost', 'Supplier', 'Note'],
   Usage: ['Date', 'ItemName', 'Unit', 'Quantity', 'Note', 'Room'],
   Damages: ['Date', 'ItemName', 'Quantity', 'Description', 'Location']
 };
@@ -483,6 +500,7 @@ function getMasterInventoryRows() {
     item.storage,
     getStatus(item).replace('-', ' '),
     item.tags,
+    item.supplier,
     item.notes
   ]);
 }
@@ -632,7 +650,6 @@ async function checkMetadataAndReconnectImport() {
 }
 
 async function syncTransactionsToSheet(silent = false , actionDescription = `transaction`) {
-  console.log("DEBUG TANGINA NAMAN EH");
   
   if (!canSyncWithSheet()) {
     if (!silent) showToast('Not connected to Google Sheets.', 'error');
@@ -642,7 +659,6 @@ async function syncTransactionsToSheet(silent = false , actionDescription = `tra
   updateSheetStatus('Syncing data to Google Sheet...', true);
 
   try {
-    console.log("DEBUG force sync data to sheet");
     metadata = await getSpreadsheetMetadata();
     const existingSheets = (metadata.sheets || []).map((s) => s.properties.title);
     const missingSheets = Object.keys(SHEET_SPECS).filter((name) => !existingSheets.includes(name));
@@ -686,17 +702,27 @@ function hasTransactions(itemId) {
     || damages.some((d) => d.itemId === itemId);
 }
 
+function sortItemsByName(itemsToSort, direction = 'asc') {
+  return [...itemsToSort].sort((a, b) => {
+    const comparison = a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
+    return direction === 'desc' ? -comparison : comparison;
+  });
+}
+
 function getFilteredItems() {
   const nameTerm = filterName ? filterName.value.trim().toLowerCase() : '';
   const categoryTerm = filterCategory ? filterCategory.value.trim().toLowerCase() : '';
   const tagsTerm = filterTags ? filterTags.value.trim().toLowerCase() : '';
+  const sortDirection = filterSort && filterSort.value === 'name-desc' ? 'desc' : 'asc';
 
-  return items.filter((item) => {
+  const filteredItems = items.filter((item) => {
     const matchesName = nameTerm === '' || item.name.toLowerCase().includes(nameTerm);
     const matchesCategory = categoryTerm === '' || item.category.toLowerCase().includes(categoryTerm);
     const matchesTags = tagsTerm === '' || item.tags.toLowerCase().includes(tagsTerm);
     return matchesName && matchesCategory && matchesTags;
   });
+
+  return sortItemsByName(filteredItems, sortDirection);
 }
 
 /* --- Rendering Views & UI Components --- */
@@ -829,6 +855,7 @@ function populatePurchaseForm(purchase) {
   purchaseForm.elements.unit.value = purchase.unit;
   purchaseForm.elements.quantity.value = purchase.quantity;
   purchaseForm.elements.cost.value = purchase.cost;
+  purchaseForm.elements.supplier.value = purchase.supplier;
   purchaseForm.elements.note.value = purchase.note;
   purchaseForm.scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
@@ -879,6 +906,7 @@ function populateForm(item) {
   form.elements.unit.value = item.unit;
   form.elements.storage.value = item.storage;
   form.elements.tags.value = item.tags;
+  form.elements.supplier.value = item.supplier;
   form.elements.notes.value = item.notes;
 
   form.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -940,9 +968,14 @@ function renderInventory() {
 
       ${item.notes ? `<p class="card-notes">"${item.notes}"</p>` : ''}
 
+      ${item.supplier ? `<p class="card-notes">Supplier: ${item.supplier}</p>` : ''}
+
       <div class="card-actions">
         <button type="button" class="btn btn-secondary btn-sm" data-action="edit" data-id="${item.id}">Edit</button>
         <button type="button" class="btn btn-secondary btn-sm" data-action="delete" data-id="${item.id}" ${hasTransactions(item.id) ? "disabled title='Cannot delete item with transaction history'" : ''}>Delete</button>
+        <button type="button" class="btn btn-secondary btn-sm" data-action="purchase" data-id="${item.id}">Purchase</button>
+        <button type="button" class="btn btn-secondary btn-sm" data-action="usage" data-id="${item.id}">Use</button>
+        <button type="button" class="btn btn-secondary btn-sm" data-action="damage" data-id="${item.id}">Damage</button>
       </div>
     `;
 
@@ -953,7 +986,8 @@ function renderInventory() {
 function renderPurchaseItems() {
   if (!purchaseItemSelect) return;
   const selectedValue = purchaseItemSelect.value;
-  purchaseItemSelect.innerHTML = items.map((item) => `<option value="${item.id}">${item.name} (${getCurrentStock(item)} ${item.unit})</option>`).join('');
+  const sortedItems = sortItemsByName(items);
+  purchaseItemSelect.innerHTML = sortedItems.map((item) => `<option value="${item.id}">${item.name} (${getCurrentStock(item)} ${item.unit})</option>`).join('');
 
   if (selectedValue && [...purchaseItemSelect.options].some((opt) => opt.value === selectedValue)) {
     purchaseItemSelect.value = selectedValue;
@@ -968,7 +1002,8 @@ function renderPurchaseItems() {
 function renderUsageItems() {
   if (!usageItemSelect) return;
   const selectedValue = usageItemSelect.value;
-  usageItemSelect.innerHTML = items.map((item) => `<option value="${item.id}">${item.name} (${getCurrentStock(item)} ${item.unit})</option>`).join('');
+  const sortedItems = sortItemsByName(items);
+  usageItemSelect.innerHTML = sortedItems.map((item) => `<option value="${item.id}">${item.name} (${getCurrentStock(item)} ${item.unit})</option>`).join('');
 
   if (selectedValue && [...usageItemSelect.options].some((opt) => opt.value === selectedValue)) {
     usageItemSelect.value = selectedValue;
@@ -983,7 +1018,8 @@ function renderUsageItems() {
 function renderDamageItems() {
   if (!damageItemSelect) return;
   const selectedValue = damageItemSelect.value;
-  damageItemSelect.innerHTML = items.map((item) => `<option value="${item.id}">${item.name} (${getCurrentStock(item)} ${item.unit})</option>`).join('');
+  const sortedItems = sortItemsByName(items);
+  damageItemSelect.innerHTML = sortedItems.map((item) => `<option value="${item.id}">${item.name} (${getCurrentStock(item)} ${item.unit})</option>`).join('');
 
   if (selectedValue && [...damageItemSelect.options].some((opt) => opt.value === selectedValue)) {
     damageItemSelect.value = selectedValue;
@@ -1060,8 +1096,10 @@ function renderPurchases() {
             <span class="meta-value">₱${(p.quantity * p.cost).toFixed(2)}</span>
           </div>
         </div>
+        
+        ${p.supplier ? `<p class="card-notes"> Supplier: ${p.supplier}</p>` : ''}
 
-        ${p.note ? `<p class="card-notes">Supplier/Note: ${p.note}</p>` : ''}
+        ${p.note ? `<p class="card-notes">Note: ${p.note}</p>` : ''}
 
         <div class="card-actions">
           <button type="button" class="btn btn-secondary btn-sm" data-action="edit-purchase" data-id="${p.id}">Edit</button>
@@ -1270,6 +1308,7 @@ purchaseForm.addEventListener('submit', (event) => {
     unit: formData.get('unit').toString().trim().toLowerCase(),
     quantity: Number(formData.get('quantity')),
     cost: Number(formData.get('cost')),
+    supplier: formData.get('supplier').toString().trim(),
     note: formData.get('note').toString().trim()
   };
 
@@ -1360,6 +1399,7 @@ damageForm.addEventListener('submit', (event) => {
 if (filterName) filterName.addEventListener('input', render);
 if (filterCategory) filterCategory.addEventListener('input', render);
 if (filterTags) filterTags.addEventListener('input', render);
+if (filterSort) filterSort.addEventListener('change', render);
 
 /* --- Google Connection Handler --- */
 async function connectGoogleSheets() {
@@ -1486,7 +1526,8 @@ async function importFromSheet() {
       unit: (row[2] || 'units').toString().trim().toLowerCase(),
       storage: row[7] || 'Unassigned',
       tags: row[9] || '',
-      notes: row[10] || ''
+      supplier: row[10] || '',
+      notes: row[11] || ''
     }));
 
     const importedItemMap = new Map(importedItems.map((item) => [item.name.toLowerCase(), item]));
@@ -1497,7 +1538,8 @@ async function importFromSheet() {
       unit: (row[2] || '').toString().trim().toLowerCase(),
       quantity: Number(row[3] || 0),
       cost: Number(row[4] || 0),
-      note: row[5] || ''
+      supplier: row[5] || '',
+      note: row[6] || ''
     })).filter((p) => p.itemId !== 0);
 
     const importedUsages = usageRows.slice(1).map((row, index) => ({
@@ -1586,6 +1628,45 @@ inventoryList.addEventListener('click', (event) => {
     render();
     showToast(`Deleted "${itemToDelete.name}"`, 'info');
     syncTransactionsToSheet(actionDescription = 'item deletion');
+  }
+
+  if (action === 'purchase') {
+    const itemToPurchase = items.find((item) => item.id === itemId);
+    if (itemToPurchase) {
+      resetPurchaseForm();
+      purchaseForm.elements.itemId.value = itemToPurchase.id;
+      purchaseForm.elements.unit.value = itemToPurchase.unit;
+      purchaseForm.elements.cost.value = itemToPurchase.price || 0;
+      purchaseForm.elements.quantity.value = itemToPurchase.reorderQty || 1;
+      purchaseForm.elements.supplier.value = itemToPurchase.supplier || '';
+
+      selectTab('tab-purchases');
+      purchaseForm.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }
+
+  if (action === 'usage') {
+    const itemToUse = items.find((item) => item.id === itemId);
+    if (itemToUse) {
+      resetUsageForm();
+      usageForm.elements.itemId.value = itemToUse.id;
+      usageForm.elements.unit.value = itemToUse.unit;
+
+      selectTab('tab-usage');
+      usageForm.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }
+
+  if (action === 'damage') {
+    const itemToDamage = items.find((item) => item.id === itemId);
+    if (itemToDamage) {
+      resetDamageForm();
+      damageForm.elements.itemId.value = itemToDamage.id;
+      damageForm.elements.location.value = itemToDamage.storage;
+
+      selectTab('tab-damage');
+      damageForm.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
   }
 });
 

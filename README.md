@@ -67,19 +67,31 @@ The app automatically formats and synchronizes 5 distinct sheet tabs:
 3. Click **Google Sync Settings** in the top navigation or section header to enter your Google Sheet ID and connect your Google Account.
 
 
-## TODO List
-- **Master List Updates**
-    - Add supplier per item
-    - Add ability to purchase item from master list, automatically setting Cost to latest unit cost, supplier and current stock to reorder quantity
-    - Add ability to add image per item
-    - Make status changeable, is in stock, low stock and inactive, if inactive then it should be displayed on low stock list. Retain low stock logic and ui design, excluding items with inactive status from master list.   
+## 2026/08/01 Release (vercel)
 - **Google Sheet Connection Updates**
     - if Google Sheet is disconnected then pop up to reconnect should be displayed first, then ask user if they want to sync or not.
     - If master list is updated locally and is ahead of Google Sheet, then pop up to sync should be displayed then force export to sheet should be done after user confirmation.
-    - If Google Sheet is updated locally and is ahead of master list, then pop up to sync should be displayed then force import from sheet should be done after user confirmation.
+    - If Google Sheet is updated locally and is ahead of master list, then pop up to sync should be displayed then force import from sheet should be done after user confirmation.   
 - **Purchases**
     - add ability to edit/delete purchase records, if record is deleted then the latest unit cost should be updated to the next latest unit cost, and if no other records are available then set unit cost to 0.
+
+## 2026/08/02 Release (vercel)
+- **Master List Updates**
+    - Add supplier per item
+    - Add ability to navigate to purchase, use and damage on item from master list, automatically setting Cost to latest unit cost, supplier an reorder quantity
+- **Purchases**
     - separate note and supplier field
+- **UX improvements**
+    - Make low-stock list collapsible
+    - sorting on filter alphabetical
+
+## TODO List
+- **Master List Updates**
+    - Add itemID - HOLD
+    - Add ability to add image per item (store image on google drive), save image url on google sheet
+    - Make status changeable, is in stock, low stock and inactive, if inactive then it should be displayed on low stock list. Retain low stock logic and ui design, excluding items with inactive status from master list.   
+
+- **Purchases**
     - add image per purchase, should update item image when item is updated, set image to image from latest transaction when updated.
    
 - **Expense Tracker** (New)
@@ -95,6 +107,19 @@ The app automatically formats and synchronizes 5 distinct sheet tabs:
    - Add date of payment
    - Description
    - Amount
+
+- **Reports**
+   - Monthly inventory flow
+   - Monthly Expenses + Purchases
+
+- **Manager's Notes**
+   - enable manager to create ToDo items list with status tracking
+
+- **UX improvements**
+   - better looking select item name options
+
+
+
 
 
 

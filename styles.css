@@ -420,6 +420,7 @@ button, input, select, textarea {
 .styled-form input[type="date"],
 .styled-form input[type="search"],
 .styled-form select,
+.filter-row select,
 .filter-row input {
   width: 100%;
   padding: 10px 14px;
@@ -634,8 +635,10 @@ button, input, select, textarea {
 }
 
 .card-actions {
-  display: flex;
-  gap: 8px;
+  /* display: flex; */
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(60px, 1fr));
+  gap: 4px;
   margin-top: auto;
   padding-top: 8px;
   border-top: 1px solid var(--border-color);
