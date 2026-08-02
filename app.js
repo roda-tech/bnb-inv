@@ -2,6 +2,7 @@ const STORAGE_KEY = 'bnb-inventory-manager';
 const PURCHASES_KEY = 'bnb-inventory-manager-purchases';
 const USAGE_KEY = 'bnb-inventory-manager-usage';
 const DAMAGE_KEY = 'bnb-inventory-manager-damage';
+const EXPENSES_KEY = 'bnb-inventory-manager-expenses';
 const SHEET_SETTINGS_KEY = 'bnb-inventory-sheet-settings';
 const SHEET_TOKEN_KEY = 'bnb-inventory-sheet-token';
 const LAST_LOCAL_UPDATE_KEY = 'bnb-inventory-last-local-update';
@@ -13,15 +14,18 @@ const initialItems = [];
 const initialPurchases = [];
 const initialUsages = [];
 const initialDamages = [];
+const initialExpenses = [];
 
 let items = loadItems();
 let purchases = loadPurchases();
 let usages = loadUsages();
 let damages = loadDamages();
+let expenses = loadExpenses();
 let editingItemId = null;
 let editingPurchaseId = null;
 let editingUsageId = null;
 let editingDamageId = null;
+let editingExpenseId = null;
 
 // DOM Elements
 const inventoryList = document.getElementById('inventory-list');
@@ -62,7 +66,15 @@ const damageFormTitle = document.getElementById('damage-form-title');
 const cancelDamageEditBtn = document.getElementById('cancel-damage-edit');
 const damageSubmitBtn = document.getElementById('damage-submit-btn');
 
+const expenseForm = document.getElementById('expense-form');
+const expenseList = document.getElementById('expense-list');
+const expenseFormTitle = document.getElementById('expense-form-title');
+const cancelExpenseEditBtn = document.getElementById('cancel-expense-edit');
+const expenseSubmitBtn = document.getElementById('expense-submit-btn');
+
 const unitDatalist = document.getElementById('unit-options');
+const expenseTypeDatalist = document.getElementById('expense-type-options');
+const expenseModeDatalist = document.getElementById('expense-mode-options');
 const toastContainer = document.getElementById('toast-container');
 
 // Sync Modal Elements
@@ -226,6 +238,20 @@ function normalizeDamages(damagesToNormalize) {
   }));
 }
 
+function normalizeExpenses(expensesToNormalize) {
+  return expensesToNormalize.map((expense) => ({
+    ...expense,
+    id: Number(expense.id) || Date.now() + Math.floor(Math.random() * 1000),
+    date: expense.date || new Date().toISOString().slice(0, 10),
+    type: expense.type ? expense.type.toString().trim() : 'Other',
+    amount: Number(expense.amount ?? 0),
+    notes: expense.notes ?? '',
+    modeOfPayment: expense.modeOfPayment ?? '',
+    status: expense.status ?? 'Pending',
+    tag: expense.tag ?? ''
+  }));
+}
+
 /* --- Local Storage Load & Save --- */
 function loadItems() {
   const stored = localStorage.getItem(STORAGE_KEY);
@@ -283,11 +309,26 @@ function loadDamages() {
   return normalizeDamages(initialDamages);
 }
 
+function loadExpenses() {
+  const stored = localStorage.getItem(EXPENSES_KEY);
+  if (stored) {
+    try {
+      const parsed = JSON.parse(stored);
+      if (Array.isArray(parsed)) return normalizeExpenses(parsed);
+    } catch (e) {
+      console.error('Failed to parse saved expenses', e);
+    }
+  }
+  localStorage.setItem(EXPENSES_KEY, JSON.stringify(initialExpenses));
+  return normalizeExpenses(initialExpenses);
+}
+
 function saveState() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
   localStorage.setItem(PURCHASES_KEY, JSON.stringify(purchases));
   localStorage.setItem(USAGE_KEY, JSON.stringify(usages));
   localStorage.setItem(DAMAGE_KEY, JSON.stringify(damages));
+  localStorage.setItem(EXPENSES_KEY, JSON.stringify(expenses));
 }
 
 function loadSheetSettings() {
@@ -367,6 +408,22 @@ function updateUnitDatalist() {
   if (!unitDatalist) return;
   const units = getKnownUnits();
   unitDatalist.innerHTML = units.map((u) => `<option value="${u}"></option>`).join('');
+}
+
+function updateExpenseDatalists() {
+  if (expenseTypeDatalist) {
+    const expenseTypes = [...new Set(expenses.map((expense) => expense.type).filter(Boolean))];
+    const suggestedTypes = ['Supplies', 'Maintenance', 'Cleaner', 'Electricity Bill', 'Water Bill', 'Internet Bill', 'Association Dues', 'Other'];
+    const combinedTypes = [...new Set([...suggestedTypes, ...expenseTypes])];
+    expenseTypeDatalist.innerHTML = combinedTypes.map((type) => `<option value="${type}"></option>`).join('');
+  }
+
+  if (expenseModeDatalist) {
+    const modes = [...new Set(expenses.map((expense) => expense.modeOfPayment).filter(Boolean))];
+    const suggestedModes = ['Cash', 'GCash', 'Bank Transfer', 'Credit Card', 'Cheque'];
+    const combinedModes = [...new Set([...suggestedModes, ...modes])];
+    expenseModeDatalist.innerHTML = combinedModes.map((mode) => `<option value="${mode}"></option>`).join('');
+  }
 }
 
 function updateSheetStatus(message, connected = sheetConnected) {
@@ -473,7 +530,8 @@ const SHEET_SPECS = {
   MasterInventory: ['Category', 'ItemName', 'Unit', 'CurrentStock', 'Minimum', 'ReorderQty', 'Cost', 'Storage', 'Status', 'Tags', 'Supplier', 'Note'],
   Purchases: ['Date', 'ItemName', 'Unit', 'Quantity', 'Cost', 'Supplier', 'Note'],
   Usage: ['Date', 'ItemName', 'Unit', 'Quantity', 'Note', 'Room'],
-  Damages: ['Date', 'ItemName', 'Quantity', 'Description', 'Location']
+  Damages: ['Date', 'ItemName', 'Quantity', 'Description', 'Location'],
+  Expenses: ['Date', 'Type', 'Amount', 'Notes', 'ModeofPayment', 'Status', 'Tag']
 };
 
 function getDashboardRows() {
@@ -524,6 +582,18 @@ function getDamageRows() {
     const item = items.find((e) => e.id === d.itemId);
     return [d.date, item ? item.name : 'Unknown', d.quantity, d.description, d.location];
   });
+}
+
+function getExpenseRows() {
+  return expenses.map((expense) => [
+    expense.date,
+    expense.type,
+    Number(expense.amount || 0).toFixed(2),
+    expense.notes,
+    expense.modeOfPayment,
+    expense.status,
+    expense.tag
+  ]);
 }
 
 function normalizeHeader(value) {
@@ -671,7 +741,8 @@ async function syncTransactionsToSheet(silent = false , actionDescription = `tra
       clearSheet('MasterInventory'),
       clearSheet('Purchases'),
       clearSheet('Usage'),
-      clearSheet('Damages')
+      clearSheet('Damages'),
+      clearSheet('Expenses')
     ]);
 
     await Promise.all([
@@ -679,7 +750,8 @@ async function syncTransactionsToSheet(silent = false , actionDescription = `tra
       writeSheetRows('MasterInventory', [SHEET_SPECS.MasterInventory, ...getMasterInventoryRows()]),
       writeSheetRows('Purchases', [SHEET_SPECS.Purchases, ...getPurchaseRows()]),
       writeSheetRows('Usage', [SHEET_SPECS.Usage, ...getUsageRows()]),
-      writeSheetRows('Damages', [SHEET_SPECS.Damages, ...getDamageRows()])
+      writeSheetRows('Damages', [SHEET_SPECS.Damages, ...getDamageRows()]),
+      writeSheetRows('Expenses', [SHEET_SPECS.Expenses, ...getExpenseRows()])
     ]);
 
     lastSheetSync = new Date();
@@ -736,7 +808,9 @@ function render() {
   renderPurchases();
   renderUsages();
   renderDamages();
+  renderExpenses();
   updateUnitDatalist();
+  updateExpenseDatalists();
 }
 
 function renderStats() {
@@ -752,6 +826,15 @@ function renderStats() {
     return sum + currentStock * getLatestCost(item);
   }, 0);
   const storageLocations = new Set(items.map((item) => item.storage)).size;
+  //current month's total expenses
+  const totalExpenseValue = expenses.reduce((sum, expense) => {
+    const expenseDate = new Date(expense.date);
+    const now = new Date();
+    if (expenseDate.getFullYear() === now.getFullYear() && expenseDate.getMonth() === now.getMonth()) {
+      return sum + expense.amount;
+    }
+    return sum;
+  }, 0);
 
   statsEl.innerHTML = `
     <div class="stat-card">
@@ -787,6 +870,13 @@ function renderStats() {
       <div class="stat-info">
         <span class="stat-label">Storage Locations</span>
         <span class="stat-val">${storageLocations}</span>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon info">💸</div>
+      <div class="stat-info">
+        <span class="stat-label">This Month's Expenses</span>
+        <span class="stat-val">₱${totalExpenseValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
       </div>
     </div>
   `;
@@ -843,6 +933,18 @@ function resetDamageForm() {
   }
 }
 
+function resetExpenseForm() {
+  if (!expenseForm) return;
+  expenseForm.reset();
+  editingExpenseId = null;
+  if (expenseFormTitle) expenseFormTitle.textContent = 'Log Expense';
+  if (expenseSubmitBtn) expenseSubmitBtn.textContent = 'Save Expense';
+  if (cancelExpenseEditBtn) cancelExpenseEditBtn.classList.add('hidden');
+  expenseForm.elements.date.value = new Date().toISOString().slice(0, 10);
+  expenseForm.elements.status.value = 'Pending';
+  expenseForm.elements.amount.value = '0.00';
+}
+
 function populatePurchaseForm(purchase) {
   if (!purchaseForm) return;
   editingPurchaseId = purchase.id;
@@ -889,6 +991,23 @@ function populateDamageForm(damage) {
   damageForm.elements.location.value = damage.location;
   damageForm.elements.description.value = damage.description;
   damageForm.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+function populateExpenseForm(expense) {
+  if (!expenseForm) return;
+  editingExpenseId = expense.id;
+  if (expenseFormTitle) expenseFormTitle.textContent = 'Edit Expense';
+  if (expenseSubmitBtn) expenseSubmitBtn.textContent = 'Update Expense';
+  if (cancelExpenseEditBtn) cancelExpenseEditBtn.classList.remove('hidden');
+
+  expenseForm.elements.date.value = expense.date;
+  expenseForm.elements.type.value = expense.type;
+  expenseForm.elements.amount.value = expense.amount;
+  expenseForm.elements.status.value = expense.status || 'Pending';
+  expenseForm.elements.modeOfPayment.value = expense.modeOfPayment || '';
+  expenseForm.elements.tag.value = expense.tag || '';
+  expenseForm.elements.notes.value = expense.notes || '';
+  expenseForm.scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
 
 function populateForm(item) {
@@ -1203,6 +1322,57 @@ function renderDamages() {
     });
 }
 
+function renderExpenses() {
+  if (!expenseList) return;
+  expenseList.innerHTML = '';
+
+  if (expenses.length === 0) {
+    expenseList.innerHTML = '<p class="text-muted" style="grid-column: 1/-1;">No expense records logged yet.</p>';
+    return;
+  }
+
+  expenses
+    .slice()
+    .sort((a, b) => b.date.localeCompare(a.date))
+    .forEach((expense) => {
+      const card = document.createElement('article');
+      card.className = 'transaction-card';
+      const statusClass = expense.status === 'Paid' ? 'paid' : 'pending';
+
+      card.innerHTML = `
+        <div class="card-top">
+          <h3 class="card-title">${expense.type || 'Other'}</h3>
+          <span class="badge ${statusClass}">${expense.status || 'Pending'}</span>
+        </div>
+
+        <div class="meta-grid">
+          <div class="meta-item">
+            <span class="meta-label">Amount</span>
+            <span class="meta-value">₱${Number(expense.amount || 0).toFixed(2)}</span>
+          </div>
+          <div class="meta-item">
+            <span class="meta-label">Date</span>
+            <span class="meta-value">${expense.date}</span>
+          </div>
+          <div class="meta-item" style="grid-column: 1/-1;">
+            <span class="meta-label">Payment Mode</span>
+            <span class="meta-value">${expense.modeOfPayment || 'Not set'}</span>
+          </div>
+        </div>
+
+        ${expense.tag ? `<p class="card-notes">Tag: ${expense.tag}</p>` : ''}
+        ${expense.notes ? `<p class="card-notes">${expense.notes}</p>` : ''}
+
+        <div class="card-actions">
+          <button type="button" class="btn btn-secondary btn-sm" data-action="edit-expense" data-id="${expense.id}">Edit</button>
+          <button type="button" class="btn btn-secondary btn-sm" data-action="delete-expense" data-id="${expense.id}">Delete</button>
+        </div>
+      `;
+
+      expenseList.appendChild(card);
+    });
+}
+
 /* --- Event Handlers & Form Submissions --- */
 form.addEventListener('submit', (event) => {
   event.preventDefault();
@@ -1261,6 +1431,10 @@ if (cancelUsageEditBtn) {
 
 if (cancelDamageEditBtn) {
   cancelDamageEditBtn.addEventListener('click', resetDamageForm);
+}
+
+if (cancelExpenseEditBtn) {
+  cancelExpenseEditBtn.addEventListener('click', resetExpenseForm);
 }
 
 if (triggerAddItemBtn) {
@@ -1396,6 +1570,37 @@ damageForm.addEventListener('submit', (event) => {
   syncTransactionsToSheet(actionDescription = 'damage transaction');
 });
 
+expenseForm.addEventListener('submit', (event) => {
+  event.preventDefault();
+  if (!checkMetadataAndReconnectImport()) {
+    return;
+  }
+
+  const formData = new FormData(expenseForm);
+  const expensePayload = {
+    date: formData.get('date').toString(),
+    type: formData.get('type').toString().trim() || 'Other',
+    amount: Number(formData.get('amount')),
+    notes: formData.get('notes').toString().trim(),
+    modeOfPayment: formData.get('modeOfPayment').toString().trim(),
+    status: formData.get('status').toString().trim() || 'Pending',
+    tag: formData.get('tag').toString().trim()
+  };
+
+  if (editingExpenseId !== null) {
+    expenses = expenses.map((expense) => expense.id === editingExpenseId ? { ...expense, ...expensePayload } : expense);
+    showToast('Expense updated successfully', 'success');
+  } else {
+    expenses.unshift({ id: Date.now(), ...expensePayload });
+    showToast('Expense saved successfully', 'success');
+  }
+
+  saveState();
+  render();
+  resetExpenseForm();
+  syncTransactionsToSheet(actionDescription = 'expense transaction');
+});
+
 if (filterName) filterName.addEventListener('input', render);
 if (filterCategory) filterCategory.addEventListener('input', render);
 if (filterTags) filterTags.addEventListener('input', render);
@@ -1510,6 +1715,7 @@ async function importFromSheet() {
     const purchaseRows = await readSheetValues('Purchases');
     const usageRows = await readSheetValues('Usage');
     const damageRows = await readSheetValues('Damages');
+    const expenseRows = await readSheetValues('Expenses');
 
     if (masterInventoryRows.length < 2) {
       throw new Error('Workbook contains no item records in MasterInventory.');
@@ -1561,10 +1767,22 @@ async function importFromSheet() {
       description: row[3] || ''
     })).filter((d) => d.itemId !== 0);
 
+    const importedExpenses = expenseRows.slice(1).map((row, index) => ({
+      id: Date.now() + index + 40000,
+      date: row[0] || '',
+      type: row[1] || 'Other',
+      amount: Number(row[2] || 0),
+      notes: row[3] || '',
+      modeOfPayment: row[4] || '',
+      status: row[5] || 'Pending',
+      tag: row[6] || ''
+    }));
+
     items = importedItems;
     purchases = importedPurchases;
     usages = importedUsages;
     damages = importedDamages;
+    expenses = importedExpenses;
 
     saveState();
     render();
@@ -1772,6 +1990,38 @@ if (damageList) {
   });
 }
 
+if (expenseList) {
+  expenseList.addEventListener('click', (event) => {
+    const target = event.target.closest('button[data-action]');
+
+    if (!checkMetadataAndReconnectImport()) {
+      return;
+    }
+
+    if (!target) return;
+    const expenseId = Number(target.dataset.id);
+    const action = target.dataset.action;
+
+    if (action === 'edit-expense') {
+      const expenseToEdit = expenses.find((expense) => expense.id === expenseId);
+      if (expenseToEdit) populateExpenseForm(expenseToEdit);
+      return;
+    }
+
+    const expenseToDelete = expenses.find((expense) => expense.id === expenseId);
+    if (!expenseToDelete) return;
+
+    const confirmed = window.confirm(`Delete expense record for "${expenseToDelete.type}"?`);
+    if (!confirmed) return;
+
+    expenses = expenses.filter((expense) => expense.id !== expenseId);
+    saveState();
+    render();
+    showToast(`Deleted expense record for "${expenseToDelete.type}"`, 'info');
+    syncTransactionsToSheet(actionDescription = 'expense deletion');
+  });
+}
+
 /* --- Initialization --- */
 setupTabs();
 setupSyncModal();
@@ -1779,6 +2029,7 @@ resetForm();
 resetPurchaseForm();
 resetUsageForm();
 resetDamageForm();
+resetExpenseForm();
 render();
 
 async function initializeGoogleSync() {

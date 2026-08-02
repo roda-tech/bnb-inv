@@ -67,7 +67,7 @@ The app automatically formats and synchronizes 5 distinct sheet tabs:
 3. Click **Google Sync Settings** in the top navigation or section header to enter your Google Sheet ID and connect your Google Account.
 
 
-## 2026/08/01 Release (vercel)
+## 2026/08/01 Deployment (vercel)
 - **Google Sheet Connection Updates**
     - if Google Sheet is disconnected then pop up to reconnect should be displayed first, then ask user if they want to sync or not.
     - If master list is updated locally and is ahead of Google Sheet, then pop up to sync should be displayed then force export to sheet should be done after user confirmation.
@@ -75,17 +75,42 @@ The app automatically formats and synchronizes 5 distinct sheet tabs:
 - **Purchases**
     - add ability to edit/delete purchase records, if record is deleted then the latest unit cost should be updated to the next latest unit cost, and if no other records are available then set unit cost to 0.
 
-## 2026/08/02 Release (vercel)
+## 2026/08/02 Deployment (vercel)
 - **Master List Updates**
     - Add supplier per item
     - Add ability to navigate to purchase, use and damage on item from master list, automatically setting Cost to latest unit cost, supplier an reorder quantity
+    - bugfix: Low Stock Items count is 0 always.
 - **Purchases**
     - separate note and supplier field
 - **UX improvements**
     - Make low-stock list collapsible
     - sorting on filter alphabetical
+- **Expense Tracker** (New)
+   enable user to track expenses for the business
+   - google sheet 
+      sheet name: Expenses
+      columns: Date, Type, Amount, Notes, ModeofPayment, Status, Tag
+   - Fields
+      - Date
+      - Notes
+      - Amount
+      - Mode of Payment
+      - Types of Expenses ( Not a fixed list, can add new one but suggest already existing types )
+         - Supplies
+         - Maintenance
+         - Cleaner
+         - Electricity Bill
+         - Water Bill
+         - Internet Bill
+         - Association Dues
+         - Other
+      - Status (Paid or Pending)
+      - Tag
 
 ## TODO List
+- **All Tabs except Master List**
+    - Add Year and Month Filter
+    - Display current month records only by default
 - **Master List Updates**
     - Add itemID - HOLD
     - Add ability to add image per item (store image on google drive), save image url on google sheet
@@ -94,20 +119,6 @@ The app automatically formats and synchronizes 5 distinct sheet tabs:
 - **Purchases**
     - add image per purchase, should update item image when item is updated, set image to image from latest transaction when updated.
    
-- **Expense Tracker** (New)
-   - Types of Expenses
-      - Supplies
-      - Maintenance
-      - Cleaner
-      - Electricity Bill
-      - Water Bill
-      - Internet Bill
-      - Association Dues
-      - Other
-   - Add date of payment
-   - Description
-   - Amount
-
 - **Reports**
    - Monthly inventory flow
    - Monthly Expenses + Purchases

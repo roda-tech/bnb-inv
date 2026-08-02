@@ -588,6 +588,8 @@ button, input, select, textarea {
 .badge.in-stock { background: var(--success-light); color: #065f46; border: 1px solid var(--success-border); }
 .badge.low-stock { background: var(--warning-light); color: #92400e; border: 1px solid var(--warning-border); }
 .badge.out-of-stock { background: var(--danger-light); color: #991b1b; border: 1px solid var(--danger-border); }
+.badge.paid { background: var(--success-light); color: #065f46; border: 1px solid var(--success-border); }
+.badge.pending { background: var(--warning-light); color: #92400e; border: 1px solid var(--warning-border); }
 
 .chip {
   display: inline-block;
