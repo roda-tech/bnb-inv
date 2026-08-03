@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0" />
     <meta http-equiv="Pragma" content="no-cache" />
-    <title>BNB Inventory Manager - Bed & Breakfast Operations</title>
+    <title>BNB Manager - Bed & Breakfast Operations</title>
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -25,23 +25,29 @@
             </svg>
           </div>
           <div>
-            <h1 class="brand-title">BNB Inventory Manager</h1>
-            <p class="brand-subtitle">Operational inventory & supply tracking</p>
+            <h1 class="brand-title">BNB Manager</h1>
+            <p class="brand-subtitle">Operational inventory and expense management</p>
           </div>
         </div>
 
         <div class="header-actions">
+          <div class="data-month-content"  >
+            <select class="styled-select year-select" id="data-year-select" title="Select the year of data to view.">
+            </select>
+            <select class="styled-select" id="data-month-select" title="Select the month of data to view.">
+            </select>
+          </div>
           <div id="sync-status-badge" class="sync-badge offline" title="Click to configure Google Sheets Sync">
             <span class="badge-dot"></span>
-            <span id="sync-status-text">Sheets: Disconnected</span>
+            <span id="sync-status-text">Google Sheets: Disconnected</span>
           </div>
-          <button type="button" id="open-sync-modal-btn" class="btn btn-secondary">
+          <!-- <button type="button" id="open-sync-modal-btn" class="btn btn-secondary">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <circle cx="12" cy="12" r="3"></circle>
               <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
             </svg>
             Google Sync Settings
-          </button>
+          </button> -->
         </div>
       </header>
 
@@ -66,6 +72,10 @@
         <button type="button" class="nav-tab" data-tab="tab-expenses" role="tab" aria-selected="false" aria-controls="tab-expenses">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 3h16a1 1 0 0 1 1 1v16a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z"></path><path d="M8 7h8"></path><path d="M8 12h8"></path><path d="M8 17h5"></path></svg>
           Expenses
+        </button>
+        <button type="button" class="nav-tab" data-tab="tab-managers-notes" role="tab" aria-selected="false" aria-controls="tab-managers-notes">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+          Manager's Notes
         </button>
       </nav>
 
@@ -130,7 +140,7 @@
               </div>
             </details> -->
             
-            <details class="low-stock-card">
+            <details class="low-stock-card" open>
               <summary class="card-header">
                 <h3>⚠️ Restock Attention Required</h3>
                 <span id="low-stock-count-badge" class="chip chip-warning">0 items</span>
@@ -145,7 +155,7 @@
           <aside class="panel side-panel">
             <div class="panel-header">
               <div>
-                <h2 id="form-title">Add inventory item</h2>
+                <h2 id="form-title">Add New Item</h2>
                 <p class="panel-subtitle">Current stock is calculated from transactions</p>
               </div>
               <button type="button" id="cancel-edit" class="btn btn-ghost btn-sm hidden">Cancel edit</button>
@@ -454,6 +464,59 @@
               </div>
 
               <button type="submit" id="expense-submit-btn" class="btn btn-primary btn-full">Save Expense</button>
+            </form>
+          </aside>
+        </div>
+      </section>
+
+      <section id="tab-managers-notes" class="tab-panel" role="tabpanel">
+        <div class="content-grid">
+          <div class="panel main-panel">
+            <div class="panel-header">
+              <div>
+                <h2>Manager's Notes</h2>
+                <p class="panel-subtitle">Track daily follow-ups, room issues, and manager priorities</p>
+              </div>
+            </div>
+            <div id="manager-notes-list" class="transaction-grid"></div>
+          </div>
+
+          <aside class="panel side-panel">
+            <div class="panel-header">
+              <div>
+                <h2 id="manager-notes-form-title">Add Manager Note</h2>
+                <p class="panel-subtitle">Log notes with status tracking</p>
+              </div>
+              <button type="button" id="cancel-manager-notes-edit" class="btn btn-ghost btn-sm hidden">Cancel edit</button>
+            </div>
+            <form id="manager-notes-form" class="styled-form">
+              <div class="input-group">
+                <label for="manager-note-date">Date <span class="required">*</span></label>
+                <input type="date" id="manager-note-date" name="date" required />
+              </div>
+
+              <div class="input-group">
+                <label for="manager-note-notes">Notes <span class="required">*</span></label>
+                <textarea id="manager-note-notes" name="notes" rows="5" placeholder="Enter the manager note or follow-up here..." required></textarea>
+              </div>
+
+              <div class="form-row">
+                <div class="input-group">
+                  <label for="manager-note-room">Room</label>
+                  <input type="text" id="manager-note-room" name="room" placeholder="e.g. Room 201" />
+                </div>
+                <div class="input-group">
+                  <label for="manager-note-status">Status</label>
+                  <select id="manager-note-status" name="status" class="styled-select">
+                    <option value="Urgent">Urgent</option>
+                    <option value="Pending">Pending</option>
+                    <option value="Dismissed">Dismissed</option>
+                    <option value="Completed">Completed</option>
+                  </select>
+                </div>
+              </div>
+
+              <button type="submit" id="manager-notes-submit-btn" class="btn btn-primary btn-full">Save Note</button>
             </form>
           </aside>
         </div>

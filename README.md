@@ -107,24 +107,43 @@ The app automatically formats and synchronizes 5 distinct sheet tabs:
       - Status (Paid or Pending)
       - Tag
 
-## TODO List
+## 2026/08/02 Deployment (vercel)
 - **All Tabs except Master List**
     - Add Year and Month Filter
     - Display current month records only by default
+- **Manager's Notes**
+   - Add new tab: Manager's Notes, the panel should enable manager to create note items list with status tracking, not affected by overall Year and Month filter
+   - Google Sheet specs
+      name: ManagersNotes
+      columns: Date, Notes, Room, Status (Urgent, Pending or Completed), StatusId
+   - Add a stat card for number of Urgent/Pending notes, on clicking the card, view should transition to Manager's panel
+   - UI Fields
+      - Date
+      - Notes (wide text area)
+      - Room
+      - Status (Urgent, Pending, Dismissed, Completed)
+   - StatusId depends on status value, Urgent - 1, Pending - 2, Completed - 3, Dismissed - 4, record sorting will be based on ascending StatusId and descending date.
+   - task status change buttons at the bottom, then change the upper status on click.
+- **Master List**
+   - Added inactive status for items that have 0 minimum stock and 0 stock and will not repurchased anymore.
+
+
+## TODO List
 - **Master List Updates**
     - Add itemID - HOLD
     - Add ability to add image per item (store image on google drive), save image url on google sheet
-    - Make status changeable, is in stock, low stock and inactive, if inactive then it should be displayed on low stock list. Retain low stock logic and ui design, excluding items with inactive status from master list.   
 
 - **Purchases**
     - add image per purchase, should update item image when item is updated, set image to image from latest transaction when updated.
    
 - **Reports**
    - Monthly inventory flow
-   - Monthly Expenses + Purchases
+   - Monthly Expenses + Purchases 
+      - should be able to filer by month, year and expense type.
+   - Check for KPI reports for inventory
 
 - **Manager's Notes**
-   - enable manager to create ToDo items list with status tracking
+   - internal filters
 
 - **UX improvements**
    - better looking select item name options

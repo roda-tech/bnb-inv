@@ -29,6 +29,9 @@
   --danger-light: #fef2f2;
   --danger-border: #fecaca;
 
+  --disabled-light: #bcc1c7;
+  --disabled-border: #a3aaab;
+
   --surface-bg: #f8fafc;
   --card-bg: #ffffff;
   --border-color: #e2e8f0;
@@ -420,6 +423,7 @@ button, input, select, textarea {
 .styled-form input[type="date"],
 .styled-form input[type="search"],
 .styled-form select,
+.styled-form textarea,
 .filter-row select,
 .filter-row input {
   width: 100%;
@@ -435,17 +439,43 @@ button, input, select, textarea {
 
 .styled-form input:focus,
 .styled-form select:focus,
+.styled-form textarea:focus,
 .filter-row input:focus {
   border-color: var(--border-focus);
   box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
 }
+.data-month-content {
+  display: flex;
+}
+
+.data-month-content select {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  background: #ffffff;
+  color: var(--text-main);
+  font-size: 0.925rem;
+  transition: var(--transition-fast);
+  outline: none;
+}
+
 
 .styled-select {
   appearance: none;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%64748b' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right 14px center;
-  padding-right: 40px !important;
+  /* padding-right: 40px !important; */
+}
+
+.styled-select.year-select {
+  appearance: none;
+  width: 67px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%64748b' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  /* padding-right: 40px !important; */
 }
 
 /* Buttons */
@@ -497,6 +527,46 @@ button, input, select, textarea {
 
 .btn-secondary:hover {
   background: #ec76d8;
+}
+
+.btn-status-urgent {
+  background: var(--danger-light);
+  color: #991b1b;
+  border: 1px solid var(--danger-border);
+}
+
+.btn-status-urgent:hover {
+  background: #fee2e2;
+}
+
+.btn-status-pending {
+  background: var(--warning-light);
+  color: #92400e;
+  border: 1px solid var(--warning-border);
+}
+
+.btn-status-pending:hover {
+  background: #fef3c7;
+}
+
+.btn-status-completed {
+  background: var(--success-light);
+  color: #065f46;
+  border: 1px solid var(--success-border);
+}
+
+.btn-status-completed:hover {
+  background: #d1fae5;
+}
+
+.btn-status-dismissed {
+  background: var(--disabled-light);
+  color: #504b4b;
+  border: 1px solid var(--disabled-border);
+}
+
+.btn-status-dismissed:hover {
+  background: #e2e8f0;
 }
 
 .btn-ghost {
@@ -590,6 +660,9 @@ button, input, select, textarea {
 .badge.out-of-stock { background: var(--danger-light); color: #991b1b; border: 1px solid var(--danger-border); }
 .badge.paid { background: var(--success-light); color: #065f46; border: 1px solid var(--success-border); }
 .badge.pending { background: var(--warning-light); color: #92400e; border: 1px solid var(--warning-border); }
+.badge.warning { background: var(--danger-light); color: #991b1b; border: 1px solid var(--danger-border); }
+.badge.dismissed { background: var(--disabled-light); color: #504b4b; border: 1px solid var(--disabled-border); }
+.badge.inactive { background: var(--disabled-light); color: #504b4b; border: 1px solid var(--disabled-border); }
 
 .chip {
   display: inline-block;
@@ -644,6 +717,40 @@ button, input, select, textarea {
   margin-top: auto;
   padding-top: 8px;
   border-top: 1px solid var(--border-color);
+}
+
+.card-actions .btn[data-action="set-manager-note-status"] {
+  border: 1px solid var(--border-color);
+  background: #f8fafc;
+  color: var(--text-main);
+}
+
+.card-actions .btn[data-action="set-manager-note-status"][data-status="Urgent"] {
+  background: var(--danger-light);
+  color: #991b1b;
+  border-color: var(--danger-border);
+}
+
+.card-actions .btn[data-action="set-manager-note-status"][data-status="Pending"] {
+  background: var(--warning-light);
+  color: #92400e;
+  border-color: var(--warning-border);
+}
+
+.card-actions .btn[data-action="set-manager-note-status"][data-status="Completed"] {
+  background: var(--success-light);
+  color: #065f46;
+  border-color: var(--success-border);
+}
+
+.card-actions .btn[data-action="set-manager-note-status"][data-status="Dismissed"] {
+  background: var(--disabled-light);
+  color: #504b4b;
+  border-color: var(--disabled-border);
+}
+
+.card-actions .btn[data-action="set-manager-note-status"]:hover {
+  transform: translateY(-1px);
 }
 
 /* Modal Dialog */

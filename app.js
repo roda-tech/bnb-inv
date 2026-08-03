@@ -3,6 +3,7 @@ const PURCHASES_KEY = 'bnb-inventory-manager-purchases';
 const USAGE_KEY = 'bnb-inventory-manager-usage';
 const DAMAGE_KEY = 'bnb-inventory-manager-damage';
 const EXPENSES_KEY = 'bnb-inventory-manager-expenses';
+const MANAGER_NOTES_KEY = 'bnb-inventory-manager-notes';
 const SHEET_SETTINGS_KEY = 'bnb-inventory-sheet-settings';
 const SHEET_TOKEN_KEY = 'bnb-inventory-sheet-token';
 const LAST_LOCAL_UPDATE_KEY = 'bnb-inventory-last-local-update';
@@ -15,17 +16,20 @@ const initialPurchases = [];
 const initialUsages = [];
 const initialDamages = [];
 const initialExpenses = [];
+const initialManagerNotes = [];
 
 let items = loadItems();
 let purchases = loadPurchases();
 let usages = loadUsages();
 let damages = loadDamages();
 let expenses = loadExpenses();
+let managerNotes = loadManagerNotes();
 let editingItemId = null;
 let editingPurchaseId = null;
 let editingUsageId = null;
 let editingDamageId = null;
 let editingExpenseId = null;
+let editingManagerNoteId = null;
 
 // DOM Elements
 const inventoryList = document.getElementById('inventory-list');
@@ -36,6 +40,8 @@ const filterName = document.getElementById('filter-name');
 const filterCategory = document.getElementById('filter-category');
 const filterTags = document.getElementById('filter-tags');
 const filterSort = document.getElementById('filter-sort');
+const yearSelect = document.getElementById('data-year-select');
+const monthSelect = document.getElementById('data-month-select');
 
 const form = document.getElementById('item-form');
 const formTitle = document.getElementById('form-title');
@@ -71,6 +77,12 @@ const expenseList = document.getElementById('expense-list');
 const expenseFormTitle = document.getElementById('expense-form-title');
 const cancelExpenseEditBtn = document.getElementById('cancel-expense-edit');
 const expenseSubmitBtn = document.getElementById('expense-submit-btn');
+
+const managerNotesList = document.getElementById('manager-notes-list');
+const managerNotesForm = document.getElementById('manager-notes-form');
+const managerNotesFormTitle = document.getElementById('manager-notes-form-title');
+const cancelManagerNotesEditBtn = document.getElementById('cancel-manager-notes-edit');
+const managerNotesSubmitBtn = document.getElementById('manager-notes-submit-btn');
 
 const unitDatalist = document.getElementById('unit-options');
 const expenseTypeDatalist = document.getElementById('expense-type-options');
@@ -252,6 +264,38 @@ function normalizeExpenses(expensesToNormalize) {
   }));
 }
 
+function normalizeManagerNotes(managerNotesToNormalize) {
+  return managerNotesToNormalize.map((note) => {
+    const normalizedStatus = note.status ?? 'Pending';
+    const statusDetails = getManagerNoteStatusDetails(normalizedStatus, note.statusId);
+    return {
+      ...note,
+      id: Number(note.id) || Date.now() + Math.floor(Math.random() * 1000),
+      date: note.date || new Date().toISOString().slice(0, 10),
+      notes: note.notes ? note.notes.toString().trim() : '',
+      room: note.room ?? '',
+      status: statusDetails.status,
+      statusId: statusDetails.statusId
+    };
+  });
+}
+
+function getManagerNoteStatusDetails(status, fallbackStatusId = null) {
+  const normalizedStatus = (status || 'Pending').toString().trim() || 'Pending';
+  const statusMap = {
+    Urgent: 1,
+    Pending: 2,
+    Completed: 3,
+    Dismissed: 4
+  };
+
+  const resolvedStatus = Object.prototype.hasOwnProperty.call(statusMap, normalizedStatus) ? normalizedStatus : 'Pending';
+  return {
+    status: resolvedStatus,
+    statusId: fallbackStatusId ?? statusMap[resolvedStatus] ?? 5
+  };
+}
+
 /* --- Local Storage Load & Save --- */
 function loadItems() {
   const stored = localStorage.getItem(STORAGE_KEY);
@@ -323,12 +367,27 @@ function loadExpenses() {
   return normalizeExpenses(initialExpenses);
 }
 
+function loadManagerNotes() {
+  const stored = localStorage.getItem(MANAGER_NOTES_KEY);
+  if (stored) {
+    try {
+      const parsed = JSON.parse(stored);
+      if (Array.isArray(parsed)) return normalizeManagerNotes(parsed);
+    } catch (e) {
+      console.error('Failed to parse saved manager notes', e);
+    }
+  }
+  localStorage.setItem(MANAGER_NOTES_KEY, JSON.stringify(initialManagerNotes));
+  return normalizeManagerNotes(initialManagerNotes);
+}
+
 function saveState() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
   localStorage.setItem(PURCHASES_KEY, JSON.stringify(purchases));
   localStorage.setItem(USAGE_KEY, JSON.stringify(usages));
   localStorage.setItem(DAMAGE_KEY, JSON.stringify(damages));
   localStorage.setItem(EXPENSES_KEY, JSON.stringify(expenses));
+  localStorage.setItem(MANAGER_NOTES_KEY, JSON.stringify(managerNotes));
 }
 
 function loadSheetSettings() {
@@ -391,8 +450,14 @@ function getLatestCost(item) {
 
 function getStatus(item) {
   const currentStock = getCurrentStock(item);
+  const minStock = Number(item.minStock ?? 0);
+
+  if (minStock === 0) {
+    return currentStock <= 0 ? 'inactive' : 'in-stock';
+  }
+
   if (currentStock <= 0) return 'out-of-stock';
-  if (currentStock <= item.minStock) return 'low-stock';
+  if (currentStock <= minStock) return 'low-stock';
   return 'in-stock';
 }
 
@@ -435,7 +500,7 @@ function updateSheetStatus(message, connected = sheetConnected) {
 
   if (syncStatusBadge && syncStatusText) {
     syncStatusBadge.className = `sync-badge ${connected ? 'online' : 'offline'}`;
-    syncStatusText.textContent = connected ? 'Sheets: Connected' : 'Sheets: Disconnected';
+    syncStatusText.textContent = connected ? 'Google Sheets: Connected' : 'Google Sheets: Disconnected';
   }
 }
 
@@ -473,6 +538,24 @@ function selectTab(selectedTab){
   tabPanels.forEach((panel) => {
     const isActive = panel.id === selectedTab;
     panel.classList.toggle('active', isActive);
+  });
+}
+
+if (statsEl) {
+  statsEl.addEventListener('click', (event) => {
+    const target = event.target.closest('[data-go-to-tab]');
+    if (target) {
+      selectTab(target.dataset.goToTab);
+    }
+  });
+
+  statsEl.addEventListener('keydown', (event) => {
+    const target = event.target.closest('[data-go-to-tab]');
+    if (!target) return;
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      selectTab(target.dataset.goToTab);
+    }
   });
 }
 
@@ -531,7 +614,8 @@ const SHEET_SPECS = {
   Purchases: ['Date', 'ItemName', 'Unit', 'Quantity', 'Cost', 'Supplier', 'Note'],
   Usage: ['Date', 'ItemName', 'Unit', 'Quantity', 'Note', 'Room'],
   Damages: ['Date', 'ItemName', 'Quantity', 'Description', 'Location'],
-  Expenses: ['Date', 'Type', 'Amount', 'Notes', 'ModeofPayment', 'Status', 'Tag']
+  Expenses: ['Date', 'Type', 'Amount', 'Notes', 'ModeofPayment', 'Status', 'Tag'],
+  ManagersNotes: ['Date', 'Notes', 'Room', 'Status', 'StatusId']
 };
 
 function getDashboardRows() {
@@ -593,6 +677,16 @@ function getExpenseRows() {
     expense.modeOfPayment,
     expense.status,
     expense.tag
+  ]);
+}
+
+function getManagerNotesRows() {
+  return managerNotes.map((note) => [
+    note.date,
+    note.notes,
+    note.room,
+    note.status,
+    note.statusId ?? (note.status === 'Urgent' ? 1 : note.status === 'Pending' ? 2 : note.status === 'Completed' ? 3 : note.status === 'Dismissed' ? 4 : 5)
   ]);
 }
 
@@ -705,6 +799,8 @@ async function checkMetadataAndReconnectImport() {
   try { 
     const metadata = await getSpreadsheetMetadata();
   } catch (error) {
+    console.error('Error fetching spreadsheet metadata:', error);
+    updateSheetStatus('Google Sheets is disconnected.', false);
     isOk = false;
     showSyncPromptModal({
       title: 'Google Sheet Disconnected',
@@ -742,7 +838,8 @@ async function syncTransactionsToSheet(silent = false , actionDescription = `tra
       clearSheet('Purchases'),
       clearSheet('Usage'),
       clearSheet('Damages'),
-      clearSheet('Expenses')
+      clearSheet('Expenses'),
+      clearSheet('ManagersNotes')
     ]);
 
     await Promise.all([
@@ -751,7 +848,8 @@ async function syncTransactionsToSheet(silent = false , actionDescription = `tra
       writeSheetRows('Purchases', [SHEET_SPECS.Purchases, ...getPurchaseRows()]),
       writeSheetRows('Usage', [SHEET_SPECS.Usage, ...getUsageRows()]),
       writeSheetRows('Damages', [SHEET_SPECS.Damages, ...getDamageRows()]),
-      writeSheetRows('Expenses', [SHEET_SPECS.Expenses, ...getExpenseRows()])
+      writeSheetRows('Expenses', [SHEET_SPECS.Expenses, ...getExpenseRows()]),
+      writeSheetRows('ManagersNotes', [SHEET_SPECS.ManagersNotes, ...getManagerNotesRows()])
     ]);
 
     lastSheetSync = new Date();
@@ -781,6 +879,89 @@ function sortItemsByName(itemsToSort, direction = 'asc') {
   });
 }
 
+function populateDateFilters() {
+  if (!yearSelect || !monthSelect) return;
+
+  const currentDate = new Date();
+  const currentYear = currentDate.getFullYear();
+  const currentMonth = currentDate.getMonth() + 1;
+  const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+
+  yearSelect.innerHTML = '';
+  monthSelect.innerHTML = '';
+  //if expenses is not empty, only populate the year and month and set repopulate 
+  // Year and Month that have expensesx
+  if (expenses.length > 0) {
+    const expenseYears = new Set(expenses.map((expense) => {
+      const date = new Date(expense.date);
+      return date.getFullYear();
+    }));
+
+    expenseYears.forEach((year) => {
+      const option = document.createElement('option');
+      option.value = String(year);
+      option.textContent = String(year);
+      yearSelect.appendChild(option);
+    });
+
+    // Populate the month dropdown
+    const expenseMonths = new Set(expenses.map((expense) => {
+      const date = new Date(expense.date);
+      return date.getMonth() + 1; // Months are zero-based
+    }));
+
+    expenseMonths.forEach((month) => {
+      const option = document.createElement('option');
+      option.value = String(month);
+      option.textContent = monthNames[month - 1];
+      monthSelect.appendChild(option);
+    });
+  } else {
+    for (let year = currentYear - 2; year <= currentYear + 2; year += 1) {
+      const option = document.createElement('option');
+      option.value = String(year);
+      option.textContent = String(year);
+      yearSelect.appendChild(option);
+    }
+
+    monthNames.forEach((name, index) => {
+      const option = document.createElement('option');
+      option.value = String(index + 1);
+      option.textContent = name;
+      monthSelect.appendChild(option);
+    });
+  }
+
+  yearSelect.value = String(currentYear);
+  monthSelect.value = String(currentMonth);
+}
+
+function getSelectedYearMonth() {
+  const currentDate = new Date();
+  const fallbackYear = currentDate.getFullYear();
+  const fallbackMonth = currentDate.getMonth() + 1;
+
+  const selectedYear = yearSelect ? Number(yearSelect.value || fallbackYear) : fallbackYear;
+  const selectedMonth = monthSelect ? Number(monthSelect.value || fallbackMonth) : fallbackMonth;
+
+  return { year: selectedYear, month: selectedMonth };
+}
+
+function matchesSelectedYearMonth(dateValue, year, month) {
+  if (typeof dateValue !== 'string') return false;
+
+  const parts = dateValue.split('-');
+  if (parts.length !== 3) return false;
+
+  const [dateYear, dateMonth] = parts.map((part) => Number(part));
+  return dateYear === year && dateMonth === month;
+}
+
+function getFilteredTransactions(transactions) {
+  const { year, month } = getSelectedYearMonth();
+  return transactions.filter((transaction) => matchesSelectedYearMonth(transaction.date, year, month));
+}
+
 function getFilteredItems() {
   const nameTerm = filterName ? filterName.value.trim().toLowerCase() : '';
   const categoryTerm = filterCategory ? filterCategory.value.trim().toLowerCase() : '';
@@ -798,6 +979,8 @@ function getFilteredItems() {
 }
 
 /* --- Rendering Views & UI Components --- */
+populateDateFilters();
+
 function render() {
   renderStats();
   renderLowStockList();
@@ -809,6 +992,7 @@ function render() {
   renderUsages();
   renderDamages();
   renderExpenses();
+  renderManagerNotes();
   updateUnitDatalist();
   updateExpenseDatalists();
 }
@@ -827,14 +1011,19 @@ function renderStats() {
   }, 0);
   const storageLocations = new Set(items.map((item) => item.storage)).size;
   //current month's total expenses
+  const { year, month } = getSelectedYearMonth();
   const totalExpenseValue = expenses.reduce((sum, expense) => {
-    const expenseDate = new Date(expense.date);
-    const now = new Date();
-    if (expenseDate.getFullYear() === now.getFullYear() && expenseDate.getMonth() === now.getMonth()) {
-      return sum + expense.amount;
+    if (!matchesSelectedYearMonth(expense.date, year, month)) {
+      return sum;
     }
-    return sum;
+    return sum + expense.amount;
   }, 0);
+
+  const urgentPendingNotes = managerNotes.filter((note) => {
+    const status = note.status.toLowerCase();
+    return status === 'urgent' || status === 'pending';
+  }).length;
+
 
   statsEl.innerHTML = `
     <div class="stat-card">
@@ -877,6 +1066,13 @@ function renderStats() {
       <div class="stat-info">
         <span class="stat-label">This Month's Expenses</span>
         <span class="stat-val">₱${totalExpenseValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+      </div>
+    </div>
+    <div class="stat-card" data-go-to-tab="tab-managers-notes" role="button" tabindex="0" title="Open Manager's Notes">
+      <div class="stat-icon warning">📝</div>
+      <div class="stat-info">
+        <span class="stat-label">Urgent/Pending Notes</span>
+        <span class="stat-val">${urgentPendingNotes}</span>
       </div>
     </div>
   `;
@@ -945,6 +1141,17 @@ function resetExpenseForm() {
   expenseForm.elements.amount.value = '0.00';
 }
 
+function resetManagerNotesForm() {
+  if (!managerNotesForm) return;
+  managerNotesForm.reset();
+  editingManagerNoteId = null;
+  if (managerNotesFormTitle) managerNotesFormTitle.textContent = 'Add Manager Note';
+  if (managerNotesSubmitBtn) managerNotesSubmitBtn.textContent = 'Save Note';
+  if (cancelManagerNotesEditBtn) cancelManagerNotesEditBtn.classList.add('hidden');
+  managerNotesForm.elements.date.value = new Date().toISOString().slice(0, 10);
+  managerNotesForm.elements.status.value = 'Pending';
+}
+
 function populatePurchaseForm(purchase) {
   if (!purchaseForm) return;
   editingPurchaseId = purchase.id;
@@ -1010,6 +1217,20 @@ function populateExpenseForm(expense) {
   expenseForm.scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
 
+function populateManagerNotesForm(note) {
+  if (!managerNotesForm) return;
+  editingManagerNoteId = note.id;
+  if (managerNotesFormTitle) managerNotesFormTitle.textContent = 'Edit Manager Note';
+  if (managerNotesSubmitBtn) managerNotesSubmitBtn.textContent = 'Update Note';
+  if (cancelManagerNotesEditBtn) cancelManagerNotesEditBtn.classList.remove('hidden');
+
+  managerNotesForm.elements.date.value = note.date;
+  managerNotesForm.elements.notes.value = note.notes;
+  managerNotesForm.elements.room.value = note.room || '';
+  managerNotesForm.elements.status.value = note.status || 'Pending';
+  managerNotesForm.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
 function populateForm(item) {
   editingItemId = item.id;
   formTitle.textContent = 'Edit inventory item';
@@ -1051,6 +1272,7 @@ function renderInventory() {
     let badgeText = 'In Stock';
     if (status === 'low-stock') badgeText = 'Low Stock';
     if (status === 'out-of-stock') badgeText = 'Out of Stock';
+    if (status === 'inactive') badgeText = 'Inactive';
 
     card.innerHTML = `
       <div class="card-top">
@@ -1182,12 +1404,14 @@ function renderPurchases() {
   if (!purchaseList) return;
   purchaseList.innerHTML = '';
 
-  if (purchases.length === 0) {
-    purchaseList.innerHTML = '<p class="text-muted" style="grid-column: 1/-1;">No purchase records logged yet.</p>';
+  const filteredPurchases = getFilteredTransactions(purchases);
+
+  if (filteredPurchases.length === 0) {
+    purchaseList.innerHTML = '<p class="text-muted" style="grid-column: 1/-1;">No purchase records logged yet for the selected period.</p>';
     return;
   }
 
-  purchases
+  filteredPurchases
     .slice()
     .sort((a, b) => b.date.localeCompare(a.date))
     .forEach((p) => {
@@ -1234,12 +1458,14 @@ function renderUsages() {
   if (!usageList) return;
   usageList.innerHTML = '';
 
-  if (usages.length === 0) {
-    usageList.innerHTML = '<p class="text-muted" style="grid-column: 1/-1;">No usage records logged yet.</p>';
+  const filteredUsages = getFilteredTransactions(usages);
+
+  if (filteredUsages.length === 0) {
+    usageList.innerHTML = '<p class="text-muted" style="grid-column: 1/-1;">No usage records logged yet for the selected period.</p>';
     return;
   }
 
-  usages
+  filteredUsages
     .slice()
     .sort((a, b) => b.date.localeCompare(a.date))
     .forEach((u) => {
@@ -1280,12 +1506,14 @@ function renderDamages() {
   if (!damageList) return;
   damageList.innerHTML = '';
 
-  if (damages.length === 0) {
-    damageList.innerHTML = '<p class="text-muted" style="grid-column: 1/-1;">No damage records logged yet.</p>';
+  const filteredDamages = getFilteredTransactions(damages);
+
+  if (filteredDamages.length === 0) {
+    damageList.innerHTML = '<p class="text-muted" style="grid-column: 1/-1;">No damage records logged yet for the selected period.</p>';
     return;
   }
 
-  damages
+  filteredDamages
     .slice()
     .sort((a, b) => b.date.localeCompare(a.date))
     .forEach((d) => {
@@ -1326,12 +1554,14 @@ function renderExpenses() {
   if (!expenseList) return;
   expenseList.innerHTML = '';
 
-  if (expenses.length === 0) {
-    expenseList.innerHTML = '<p class="text-muted" style="grid-column: 1/-1;">No expense records logged yet.</p>';
+  const filteredExpenses = getFilteredTransactions(expenses);
+
+  if (filteredExpenses.length === 0) {
+    expenseList.innerHTML = '<p class="text-muted" style="grid-column: 1/-1;">No expense records logged yet for the selected period.</p>';
     return;
   }
 
-  expenses
+  filteredExpenses
     .slice()
     .sort((a, b) => b.date.localeCompare(a.date))
     .forEach((expense) => {
@@ -1370,6 +1600,65 @@ function renderExpenses() {
       `;
 
       expenseList.appendChild(card);
+    });
+}
+
+function renderManagerNotes() {
+  if (!managerNotesList) return;
+  managerNotesList.innerHTML = '';
+
+  //const filteredNotes = getFilteredTransactions(managerNotes);
+
+  if (managerNotes.length === 0) {
+    managerNotesList.innerHTML = '<p class="text-muted" style="grid-column: 1/-1;">No manager notes logged yet for the selected period.</p>';
+    return;
+  }
+
+  // Sort notes by statusId asc then by date desc
+  managerNotes
+    .slice()
+    .sort((a, b) => {
+      if (a.statusId !== b.statusId) {
+        return a.statusId - b.statusId;
+      }
+      return b.date.localeCompare(a.date);
+    })
+    .forEach((note) => {
+      const card = document.createElement('article');
+      card.className = 'transaction-card';
+      const statusClass = note.status === 'Urgent' ? 'warning' : note.status === 'Completed' ? 'paid' : note.status === 'Dismissed' ? 'dismissed' : 'pending';
+
+      card.innerHTML = `
+        <div class="card-top">
+          <h3 class="card-title">${note.notes || 'Manager note'}</h3>
+          <span class="badge ${statusClass}">${note.status || 'Pending'}</span>
+        </div>
+
+        <div class="meta-grid">
+          <div class="meta-item">
+            <span class="meta-label">Date</span>
+            <span class="meta-value">${note.date}</span>
+          </div>
+          <div class="meta-item">
+            <span class="meta-label">Room</span>
+            <span class="meta-value">${note.room || 'General'}</span>
+          </div>
+        </div>
+
+        <div class="card-actions">
+          ${['Urgent', 'Pending', 'Dismissed', 'Completed']
+            .filter((status) => status !== (note.status || 'Pending'))
+            .map((status) => {
+              const statusClass = status.toLowerCase();
+              return `<button type="button" class="btn btn-secondary btn-sm btn-status-${statusClass}" data-action="set-manager-note-status" data-id="${note.id}" data-status="${status}">${status}</button>`;
+            })
+            .join('')}
+          <button type="button" class="btn btn-secondary btn-sm" data-action="edit-manager-note" data-id="${note.id}">Edit</button>
+          <button type="button" class="btn btn-secondary btn-sm" data-action="delete-manager-note" data-id="${note.id}">Delete</button>
+        </div>
+      `;
+
+      managerNotesList.appendChild(card);
     });
 }
 
@@ -1435,6 +1724,10 @@ if (cancelDamageEditBtn) {
 
 if (cancelExpenseEditBtn) {
   cancelExpenseEditBtn.addEventListener('click', resetExpenseForm);
+}
+
+if (cancelManagerNotesEditBtn) {
+  cancelManagerNotesEditBtn.addEventListener('click', resetManagerNotesForm);
 }
 
 if (triggerAddItemBtn) {
@@ -1601,10 +1894,44 @@ expenseForm.addEventListener('submit', (event) => {
   syncTransactionsToSheet(actionDescription = 'expense transaction');
 });
 
+if (managerNotesForm) {
+  managerNotesForm.addEventListener('submit', (event) => {
+    event.preventDefault();
+    if (!checkMetadataAndReconnectImport()) {
+      return;
+    }
+
+    const formData = new FormData(managerNotesForm);
+    const statusDetails = getManagerNoteStatusDetails(formData.get('status').toString().trim() || 'Pending');
+    const notePayload = {
+      date: formData.get('date').toString(),
+      notes: formData.get('notes').toString().trim(),
+      room: formData.get('room').toString().trim(),
+      status: statusDetails.status,
+      statusId: statusDetails.statusId
+    };
+
+    if (editingManagerNoteId !== null) {
+      managerNotes = managerNotes.map((note) => note.id === editingManagerNoteId ? { ...note, ...notePayload } : note);
+      showToast('Manager note updated successfully', 'success');
+    } else {
+      managerNotes.unshift({ id: Date.now(), ...notePayload });
+      showToast('Manager note saved successfully', 'success');
+    }
+
+    saveState();
+    render();
+    resetManagerNotesForm();
+    syncTransactionsToSheet(actionDescription = 'manager note');
+  });
+}
+
 if (filterName) filterName.addEventListener('input', render);
 if (filterCategory) filterCategory.addEventListener('input', render);
 if (filterTags) filterTags.addEventListener('input', render);
 if (filterSort) filterSort.addEventListener('change', render);
+if (yearSelect) yearSelect.addEventListener('change', render);
+if (monthSelect) monthSelect.addEventListener('change', render);
 
 /* --- Google Connection Handler --- */
 async function connectGoogleSheets() {
@@ -1716,6 +2043,7 @@ async function importFromSheet() {
     const usageRows = await readSheetValues('Usage');
     const damageRows = await readSheetValues('Damages');
     const expenseRows = await readSheetValues('Expenses');
+    const managerNotesRows = await readSheetValues('ManagersNotes');
 
     if (masterInventoryRows.length < 2) {
       throw new Error('Workbook contains no item records in MasterInventory.');
@@ -1778,11 +2106,25 @@ async function importFromSheet() {
       tag: row[6] || ''
     }));
 
+    const importedManagerNotes = managerNotesRows.slice(1).map((row, index) => {
+      const status = row[3] || 'Pending';
+      const statusIdValue = row[4] ?? (status === 'Urgent' ? 1 : status === 'Pending' ? 2 : status === 'Completed' ? 3 : status === 'Dismissed' ? 4 : 5);
+      return {
+        id: Date.now() + index + 50000,
+        date: row[0] || '',
+        notes: row[1] || '',
+        room: row[2] || '',
+        status,
+        statusId: statusIdValue
+      };
+    });
+
     items = importedItems;
     purchases = importedPurchases;
     usages = importedUsages;
     damages = importedDamages;
     expenses = importedExpenses;
+    managerNotes = importedManagerNotes;
 
     saveState();
     render();
@@ -1790,6 +2132,7 @@ async function importFromSheet() {
     resetPurchaseForm();
     resetUsageForm();
     resetDamageForm();
+    resetManagerNotesForm();
     updateSheetStatus(`Connected • Import complete (${items.length} items)`, true);
     showToast(`Imported ${items.length} items from Google Sheet`, 'success');
   } catch (error) {
@@ -2022,6 +2365,52 @@ if (expenseList) {
   });
 }
 
+if (managerNotesList) {
+  managerNotesList.addEventListener('click', (event) => {
+    const target = event.target.closest('button[data-action]');
+
+    if (!checkMetadataAndReconnectImport()) {
+      return;
+    }
+
+    if (!target) return;
+    const noteId = Number(target.dataset.id);
+    const action = target.dataset.action;
+
+    if (action === 'set-manager-note-status') {
+      const nextStatus = target.dataset.status;
+      const noteToUpdate = managerNotes.find((note) => note.id === noteId);
+      if (noteToUpdate) {
+        const statusDetails = getManagerNoteStatusDetails(nextStatus);
+        managerNotes = managerNotes.map((note) => note.id === noteId ? { ...note, ...statusDetails } : note);
+        saveState();
+        render();
+        showToast(`Status changed to ${statusDetails.status}`, 'success');
+        syncTransactionsToSheet(actionDescription = 'manager note status change');
+      }
+      return;
+    }
+
+    if (action === 'edit-manager-note') {
+      const noteToEdit = managerNotes.find((note) => note.id === noteId);
+      if (noteToEdit) populateManagerNotesForm(noteToEdit);
+      return;
+    }
+
+    const noteToDelete = managerNotes.find((note) => note.id === noteId);
+    if (!noteToDelete) return;
+
+    const confirmed = window.confirm('Delete this manager note?');
+    if (!confirmed) return;
+
+    managerNotes = managerNotes.filter((note) => note.id !== noteId);
+    saveState();
+    render();
+    showToast('Manager note deleted successfully', 'info');
+    syncTransactionsToSheet(actionDescription = 'manager note deletion');
+  });
+}
+
 /* --- Initialization --- */
 setupTabs();
 setupSyncModal();
@@ -2030,6 +2419,7 @@ resetPurchaseForm();
 resetUsageForm();
 resetDamageForm();
 resetExpenseForm();
+resetManagerNotesForm();
 render();
 
 async function initializeGoogleSync() {
