@@ -652,7 +652,8 @@ button, input, select, textarea {
   font-size: 0.775rem;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.03em;
+  text-align: center;
+  letter-spacing: 0.03em; 
 }
 
 .badge.in-stock { background: var(--success-light); color: #065f46; border: 1px solid var(--success-border); }
@@ -663,6 +664,12 @@ button, input, select, textarea {
 .badge.warning { background: var(--danger-light); color: #991b1b; border: 1px solid var(--danger-border); }
 .badge.dismissed { background: var(--disabled-light); color: #504b4b; border: 1px solid var(--disabled-border); }
 .badge.inactive { background: var(--disabled-light); color: #504b4b; border: 1px solid var(--disabled-border); }
+
+.badge.in-stock.date,
+.badge.out-of-stock.date,
+.badge.low-stock {
+  min-width: 125px;
+}
 
 .chip {
   display: inline-block;

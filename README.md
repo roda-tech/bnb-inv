@@ -107,7 +107,7 @@ The app automatically formats and synchronizes 5 distinct sheet tabs:
       - Status (Paid or Pending)
       - Tag
 
-## 2026/08/02 Deployment (vercel)
+## 2026/08/03 Deployment (vercel)
 - **All Tabs except Master List**
     - Add Year and Month Filter
     - Display current month records only by default
@@ -128,6 +128,12 @@ The app automatically formats and synchronizes 5 distinct sheet tabs:
    - Added inactive status for items that have 0 minimum stock and 0 stock and will not repurchased anymore.
 
 
+## 2026/08/04 Deployment (vercel)
+- **Updates/Fixes**
+    - fix UI for status/date with long item name
+    - panel change on stat-cards: lowstock, expense and notes
+    - add date range and status filter on Managers notes
+
 ## TODO List
 - **Master List Updates**
     - Add itemID - HOLD
@@ -141,9 +147,6 @@ The app automatically formats and synchronizes 5 distinct sheet tabs:
    - Monthly Expenses + Purchases 
       - should be able to filer by month, year and expense type.
    - Check for KPI reports for inventory
-
-- **Manager's Notes**
-   - internal filters
 
 - **UX improvements**
    - better looking select item name options

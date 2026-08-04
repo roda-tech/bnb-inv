@@ -35,6 +35,7 @@ let editingManagerNoteId = null;
 const inventoryList = document.getElementById('inventory-list');
 const statsEl = document.getElementById('stats');
 const lowStockList = document.getElementById('low-stock-list');
+const lowStockCardView = document.getElementById('low-stock-card-view');
 const lowStockCountBadge = document.getElementById('low-stock-count-badge');
 const filterName = document.getElementById('filter-name');
 const filterCategory = document.getElementById('filter-category');
@@ -79,6 +80,9 @@ const cancelExpenseEditBtn = document.getElementById('cancel-expense-edit');
 const expenseSubmitBtn = document.getElementById('expense-submit-btn');
 
 const managerNotesList = document.getElementById('manager-notes-list');
+const managerNotesDateFrom = document.getElementById('manager-notes-date-from');
+const managerNotesDateTo = document.getElementById('manager-notes-date-to');
+const managerNotesStatusFilter = document.getElementById('manager-notes-status-filter');
 const managerNotesForm = document.getElementById('manager-notes-form');
 const managerNotesFormTitle = document.getElementById('manager-notes-form-title');
 const cancelManagerNotesEditBtn = document.getElementById('cancel-manager-notes-edit');
@@ -546,6 +550,10 @@ if (statsEl) {
     const target = event.target.closest('[data-go-to-tab]');
     if (target) {
       selectTab(target.dataset.goToTab);
+      if (target.id === 'stat-card-low-stock' && lowStockCardView) {
+        lowStockCardView.open = true;
+        lowStockCardView.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
     }
   });
 
@@ -555,6 +563,10 @@ if (statsEl) {
     if (event.key === 'Enter' || event.key === ' ') {
       event.preventDefault();
       selectTab(target.dataset.goToTab);
+      if (target.id === 'stat-card-low-stock' && lowStockCardView) {
+        lowStockCardView.open = true;
+        lowStockCardView.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
     }
   });
 }
@@ -1033,7 +1045,7 @@ function renderStats() {
         <span class="stat-val">${totalItems}</span>
       </div>
     </div>
-    <div class="stat-card">
+    <div class="stat-card" id="stat-card-low-stock" data-go-to-tab="tab-inventory" role="button" tabindex="0" title="Open Inventory">
       <div class="stat-icon warning">⚠️</div>
       <div class="stat-info">
         <span class="stat-label">Needs Restock</span>
@@ -1061,7 +1073,7 @@ function renderStats() {
         <span class="stat-val">${storageLocations}</span>
       </div>
     </div>
-    <div class="stat-card">
+    <div class="stat-card" data-go-to-tab="tab-expenses" role="button" tabindex="0" title="Open Expenses Tab">
       <div class="stat-icon info">💸</div>
       <div class="stat-info">
         <span class="stat-label">This Month's Expenses</span>
@@ -1422,7 +1434,7 @@ function renderPurchases() {
       card.innerHTML = `
         <div class="card-top">
           <h3 class="card-title">${item ? item.name : 'Unknown Item'}</h3>
-          <span class="badge in-stock">📅 ${p.date}</span>
+          <span class="badge in-stock date">📅 ${p.date}</span>
         </div>
 
         <div class="meta-grid">
@@ -1476,7 +1488,7 @@ function renderUsages() {
       card.innerHTML = `
         <div class="card-top">
           <h3 class="card-title">${item ? item.name : 'Unknown Item'}</h3>
-          <span class="badge out-of-stock">📅 ${u.date}</span>
+          <span class="badge out-of-stock date">📅 ${u.date}</span>
         </div>
 
         <div class="meta-grid">
@@ -1524,7 +1536,7 @@ function renderDamages() {
       card.innerHTML = `
         <div class="card-top">
           <h3 class="card-title">${item ? item.name : 'Unknown Item'}</h3>
-          <span class="badge low-stock">📅 ${d.date}</span>
+          <span class="badge low-stock date">📅 ${d.date}</span>
         </div>
 
         <div class="meta-grid">
@@ -1603,63 +1615,78 @@ function renderExpenses() {
     });
 }
 
-function renderManagerNotes() {
-  if (!managerNotesList) return;
-  managerNotesList.innerHTML = '';
+function getFilteredManagerNotes() {
+  const fromDate = managerNotesDateFrom ? managerNotesDateFrom.value : '';
+  const toDate = managerNotesDateTo ? managerNotesDateTo.value : '';
+  const statusFilter = managerNotesStatusFilter ? managerNotesStatusFilter.value : 'all';
 
-  //const filteredNotes = getFilteredTransactions(managerNotes);
-
-  if (managerNotes.length === 0) {
-    managerNotesList.innerHTML = '<p class="text-muted" style="grid-column: 1/-1;">No manager notes logged yet for the selected period.</p>';
-    return;
-  }
-
-  // Sort notes by statusId asc then by date desc
-  managerNotes
-    .slice()
+  return managerNotes
+    .filter((note) => {
+      const matchesDateFrom = !fromDate || note.date >= fromDate;
+      const matchesDateTo = !toDate || note.date <= toDate;
+      const matchesStatus = statusFilter === 'all' || (note.status || 'Pending').toLowerCase() === statusFilter.toLowerCase();
+      return matchesDateFrom && matchesDateTo && matchesStatus;
+    })
     .sort((a, b) => {
       if (a.statusId !== b.statusId) {
         return a.statusId - b.statusId;
       }
       return b.date.localeCompare(a.date);
-    })
-    .forEach((note) => {
-      const card = document.createElement('article');
-      card.className = 'transaction-card';
-      const statusClass = note.status === 'Urgent' ? 'warning' : note.status === 'Completed' ? 'paid' : note.status === 'Dismissed' ? 'dismissed' : 'pending';
-
-      card.innerHTML = `
-        <div class="card-top">
-          <h3 class="card-title">${note.notes || 'Manager note'}</h3>
-          <span class="badge ${statusClass}">${note.status || 'Pending'}</span>
-        </div>
-
-        <div class="meta-grid">
-          <div class="meta-item">
-            <span class="meta-label">Date</span>
-            <span class="meta-value">${note.date}</span>
-          </div>
-          <div class="meta-item">
-            <span class="meta-label">Room</span>
-            <span class="meta-value">${note.room || 'General'}</span>
-          </div>
-        </div>
-
-        <div class="card-actions">
-          ${['Urgent', 'Pending', 'Dismissed', 'Completed']
-            .filter((status) => status !== (note.status || 'Pending'))
-            .map((status) => {
-              const statusClass = status.toLowerCase();
-              return `<button type="button" class="btn btn-secondary btn-sm btn-status-${statusClass}" data-action="set-manager-note-status" data-id="${note.id}" data-status="${status}">${status}</button>`;
-            })
-            .join('')}
-          <button type="button" class="btn btn-secondary btn-sm" data-action="edit-manager-note" data-id="${note.id}">Edit</button>
-          <button type="button" class="btn btn-secondary btn-sm" data-action="delete-manager-note" data-id="${note.id}">Delete</button>
-        </div>
-      `;
-
-      managerNotesList.appendChild(card);
     });
+}
+
+function renderManagerNotes() {
+  if (!managerNotesList) return;
+  managerNotesList.innerHTML = '';
+
+  const filteredNotes = getFilteredManagerNotes();
+
+  if (filteredNotes.length === 0) {
+    const activeFilterText = (managerNotesDateFrom && managerNotesDateFrom.value) || (managerNotesDateTo && managerNotesDateTo.value) || (managerNotesStatusFilter && managerNotesStatusFilter.value !== 'all')
+      ? 'No manager notes match the selected filters.'
+      : 'No manager notes logged yet.';
+
+    managerNotesList.innerHTML = `<p class="text-muted" style="grid-column: 1/-1;">${activeFilterText}</p>`;
+    return;
+  }
+
+  filteredNotes.forEach((note) => {
+    const card = document.createElement('article');
+    card.className = 'transaction-card';
+    const statusClass = note.status === 'Urgent' ? 'warning' : note.status === 'Completed' ? 'paid' : note.status === 'Dismissed' ? 'dismissed' : 'pending';
+
+    card.innerHTML = `
+      <div class="card-top">
+        <h3 class="card-title">${note.notes || 'Manager note'}</h3>
+        <span class="badge ${statusClass}">${note.status || 'Pending'}</span>
+      </div>
+
+      <div class="meta-grid">
+        <div class="meta-item">
+          <span class="meta-label">Date</span>
+          <span class="meta-value">${note.date}</span>
+        </div>
+        <div class="meta-item">
+          <span class="meta-label">Room</span>
+          <span class="meta-value">${note.room || 'General'}</span>
+        </div>
+      </div>
+
+      <div class="card-actions">
+        ${['Urgent', 'Pending', 'Dismissed', 'Completed']
+          .filter((status) => status !== (note.status || 'Pending'))
+          .map((status) => {
+            const statusClass = status.toLowerCase();
+            return `<button type="button" class="btn btn-secondary btn-sm btn-status-${statusClass}" data-action="set-manager-note-status" data-id="${note.id}" data-status="${status}">${status}</button>`;
+          })
+          .join('')}
+        <button type="button" class="btn btn-secondary btn-sm" data-action="edit-manager-note" data-id="${note.id}">Edit</button>
+        <button type="button" class="btn btn-secondary btn-sm" data-action="delete-manager-note" data-id="${note.id}">Delete</button>
+      </div>
+    `;
+
+    managerNotesList.appendChild(card);
+  });
 }
 
 /* --- Event Handlers & Form Submissions --- */
@@ -2409,6 +2436,20 @@ if (managerNotesList) {
     showToast('Manager note deleted successfully', 'info');
     syncTransactionsToSheet(actionDescription = 'manager note deletion');
   });
+}
+
+if (managerNotesDateFrom) {
+  managerNotesDateFrom.addEventListener('change', renderManagerNotes);
+  managerNotesDateFrom.addEventListener('input', renderManagerNotes);
+}
+
+if (managerNotesDateTo) {
+  managerNotesDateTo.addEventListener('change', renderManagerNotes);
+  managerNotesDateTo.addEventListener('input', renderManagerNotes);
+}
+
+if (managerNotesStatusFilter) {
+  managerNotesStatusFilter.addEventListener('change', renderManagerNotes);
 }
 
 /* --- Initialization --- */

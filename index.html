@@ -123,24 +123,8 @@
                 </div>
               </div>
             </div>
-
-            <!-- Low Stock Banner Widget -->
-            <!-- <details id="low-stock-widget" class="low-stock-widget" open>
-              <summary>
-                <span>Low Stock Items</span>
-                <span class="low-stock-icon">⚠️</span>
-                <span id="low-stock-count-badge-summary" class="chip chip-warning">0 items</span>
-              </summary>
-              <div class="low-stock-card">
-                <div class="card-header">
-                  <h3>⚠️ Restock Attention Required</h3>
-                  <span id="low-stock-count-badge" class="chip chip-warning">0 items</span>
-                </div>
-                <ul id="low-stock-list" class="low-stock-list"></ul>
-              </div>
-            </details> -->
             
-            <details class="low-stock-card" open>
+            <details class="low-stock-card" id="low-stock-card-view" open>
               <summary class="card-header">
                 <h3>⚠️ Restock Attention Required</h3>
                 <span id="low-stock-count-badge" class="chip chip-warning">0 items</span>
@@ -476,6 +460,28 @@
               <div>
                 <h2>Manager's Notes</h2>
                 <p class="panel-subtitle">Track daily follow-ups, room issues, and manager priorities</p>
+              </div>
+            </div>
+            <div class="filter-card">
+              <div class="filter-row">
+                <div class="input-group">
+                  <label for="manager-notes-date-from">Date From</label>
+                  <input type="date" id="manager-notes-date-from" />
+                </div>
+                <div class="input-group">
+                  <label for="manager-notes-date-to">Date To</label>
+                  <input type="date" id="manager-notes-date-to" />
+                </div>
+                <div class="input-group">
+                  <label for="manager-notes-status-filter">Status</label>
+                  <select id="manager-notes-status-filter" class="styled-select">
+                    <option value="all">All Statuses</option>
+                    <option value="Urgent">Urgent</option>
+                    <option value="Pending">Pending</option>
+                    <option value="Dismissed">Dismissed</option>
+                    <option value="Completed">Completed</option>
+                  </select>
+                </div>
               </div>
             </div>
             <div id="manager-notes-list" class="transaction-grid"></div>
