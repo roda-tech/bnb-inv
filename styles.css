@@ -667,7 +667,7 @@ button, input, select, textarea {
 
 .badge.in-stock.date,
 .badge.out-of-stock.date,
-.badge.low-stock {
+.badge.low-stock.date{
   min-width: 125px;
 }
 

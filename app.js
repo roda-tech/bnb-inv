@@ -208,7 +208,7 @@ function normalizeItems(itemsToNormalize) {
     reorderQty: Number(item.reorderQty ?? 0),
     category: item.category ?? 'General',
     unit: (item.unit ?? 'units').toString().trim().toLowerCase(),
-    storage: item.storage ?? 'Unassigned',
+    storage: item.storage ?? '',
     tags: item.tags ?? '',
     supplier: item.supplier ?? '',
     notes: item.notes ?? ''
@@ -1716,6 +1716,7 @@ form.addEventListener('submit', (event) => {
     unit: formData.get('unit').toString().trim().toLowerCase(),
     storage: formData.get('storage').toString().trim(),
     tags: formData.get('tags').toString().trim(),
+    supplier: formData.get('supplier').toString().trim(),
     notes: formData.get('notes').toString().trim()
   };
 

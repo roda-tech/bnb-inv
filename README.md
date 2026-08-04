@@ -150,6 +150,7 @@ The app automatically formats and synchronizes 5 distinct sheet tabs:
 
 - **UX improvements**
    - better looking select item name options
+   - Add item button on the transactions
 
 
 
