@@ -46,6 +46,7 @@ const monthSelect = document.getElementById('data-month-select');
 
 const form = document.getElementById('item-form');
 const formTitle = document.getElementById('form-title');
+const formItemNameInput = document.getElementById('item-name-input');
 const cancelEditBtn = document.getElementById('cancel-edit');
 const submitBtn = document.getElementById('submit-item-btn');
 const triggerAddItemBtn = document.getElementById('trigger-add-item-btn');
@@ -57,6 +58,7 @@ const purchaseUnitInput = purchaseForm ? purchaseForm.elements.unit : null;
 const purchaseFormTitle = document.getElementById('purchase-form-title');
 const cancelPurchaseEditBtn = document.getElementById('cancel-purchase-edit');
 const purchaseSubmitBtn = document.getElementById('purchase-submit-btn');
+const triggerAddPurchaseBtn = document.getElementById('trigger-add-purchase-btn');
 
 const usageForm = document.getElementById('usage-form');
 const usageList = document.getElementById('usage-list');
@@ -65,6 +67,7 @@ const usageUnitInput = usageForm ? usageForm.elements.unit : null;
 const usageFormTitle = document.getElementById('usage-form-title');
 const cancelUsageEditBtn = document.getElementById('cancel-usage-edit');
 const usageSubmitBtn = document.getElementById('usage-submit-btn');
+const triggerAddUsageBtn = document.getElementById('trigger-add-usage-btn');
 
 const damageForm = document.getElementById('damage-form');
 const damageList = document.getElementById('damage-list');
@@ -72,12 +75,15 @@ const damageItemSelect = damageForm ? damageForm.elements.itemId : null;
 const damageFormTitle = document.getElementById('damage-form-title');
 const cancelDamageEditBtn = document.getElementById('cancel-damage-edit');
 const damageSubmitBtn = document.getElementById('damage-submit-btn');
+const triggerAddDamageBtn = document.getElementById('trigger-add-damage-btn');
 
 const expenseForm = document.getElementById('expense-form');
 const expenseList = document.getElementById('expense-list');
 const expenseFormTitle = document.getElementById('expense-form-title');
+const expenseFormTypeInput = document.getElementById('expense-type');
 const cancelExpenseEditBtn = document.getElementById('cancel-expense-edit');
 const expenseSubmitBtn = document.getElementById('expense-submit-btn');
+const triggerAddExpenseBtn = document.getElementById('trigger-add-expense-btn');
 
 const managerNotesList = document.getElementById('manager-notes-list');
 const managerNotesDateFrom = document.getElementById('manager-notes-date-from');
@@ -85,8 +91,11 @@ const managerNotesDateTo = document.getElementById('manager-notes-date-to');
 const managerNotesStatusFilter = document.getElementById('manager-notes-status-filter');
 const managerNotesForm = document.getElementById('manager-notes-form');
 const managerNotesFormTitle = document.getElementById('manager-notes-form-title');
+const managerNotesFormNotesInput = document.getElementById('manager-note-notes');
 const cancelManagerNotesEditBtn = document.getElementById('cancel-manager-notes-edit');
 const managerNotesSubmitBtn = document.getElementById('manager-notes-submit-btn');
+const triggerAddManagerNotesBtn = document.getElementById('trigger-add-note-btn');
+
 
 const unitDatalist = document.getElementById('unit-options');
 const expenseTypeDatalist = document.getElementById('expense-type-options');
@@ -1094,8 +1103,9 @@ function resetForm() {
   if (!form) return;
   form.reset();
   editingItemId = null;
-  formTitle.textContent = 'Add inventory item';
+  formTitle.textContent = 'Add Inventory Item';
   submitBtn.textContent = 'Save item';
+  formItemNameInput.focus();
   cancelEditBtn.classList.add('hidden');
 }
 
@@ -1111,6 +1121,7 @@ function resetPurchaseForm() {
     purchaseItemSelect.value = items[0].id;
     if (purchaseUnitInput) purchaseUnitInput.value = items[0].unit;
   }
+  purchaseItemSelect.focus();
 }
 
 function resetUsageForm() {
@@ -1125,6 +1136,7 @@ function resetUsageForm() {
     usageItemSelect.value = items[0].id;
     if (usageUnitInput) usageUnitInput.value = items[0].unit;
   }
+  usageItemSelect.focus();
 }
 
 function resetDamageForm() {
@@ -1139,6 +1151,7 @@ function resetDamageForm() {
     damageItemSelect.value = items[0].id;
     damageForm.elements.location.value = items[0].storage;
   }
+  damageItemSelect.focus();
 }
 
 function resetExpenseForm() {
@@ -1151,6 +1164,7 @@ function resetExpenseForm() {
   expenseForm.elements.date.value = new Date().toISOString().slice(0, 10);
   expenseForm.elements.status.value = 'Pending';
   expenseForm.elements.amount.value = '0.00';
+  expenseFormTypeInput.focus();
 }
 
 function resetManagerNotesForm() {
@@ -1162,6 +1176,7 @@ function resetManagerNotesForm() {
   if (cancelManagerNotesEditBtn) cancelManagerNotesEditBtn.classList.add('hidden');
   managerNotesForm.elements.date.value = new Date().toISOString().slice(0, 10);
   managerNotesForm.elements.status.value = 'Pending';
+  managerNotesFormNotesInput.focus();
 }
 
 function populatePurchaseForm(purchase) {
@@ -1286,6 +1301,7 @@ function renderInventory() {
     if (status === 'out-of-stock') badgeText = 'Out of Stock';
     if (status === 'inactive') badgeText = 'Inactive';
 
+    card.dataset.itemId = item.id;
     card.innerHTML = `
       <div class="card-top">
         <div>
@@ -1404,12 +1420,30 @@ function renderLowStockList() {
   lowStockItems.forEach((item) => {
     const currentStock = getCurrentStock(item);
     const li = document.createElement('li');
+    li.dataset.itemId = item.id;
+    li.tabIndex = 0;
+    li.role = 'button';
+    li.className = 'low-stock-item';
     li.innerHTML = `
       <strong>${item.name}</strong>
       <span>${currentStock} ${item.unit} left (min ${item.minStock})</span>
     `;
     lowStockList.appendChild(li);
   });
+}
+
+function findInventoryCardByItemId(itemId) {
+  if (!inventoryList) return null;
+  return inventoryList.querySelector(`.inventory-card[data-item-id="${itemId}"]`);
+}
+
+function scrollToInventoryCard(itemId) {
+  const card = findInventoryCardByItemId(itemId);
+  if (!card) return false;
+  card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  card.classList.add('highlighted');
+  window.setTimeout(() => card.classList.remove('highlighted'), 1800);
+  return true;
 }
 
 function renderPurchases() {
@@ -1763,9 +1797,58 @@ if (triggerAddItemBtn) {
     if (!checkMetadataAndReconnectImport()) {
       return;
     }
-
     resetForm();
     form.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  });
+}
+
+if (triggerAddPurchaseBtn) {
+  triggerAddPurchaseBtn.addEventListener('click', () => {
+    if (!checkMetadataAndReconnectImport()) {
+      return;
+    }
+    resetPurchaseForm();
+    purchaseForm.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  });
+}
+
+if (triggerAddUsageBtn) {
+  triggerAddUsageBtn.addEventListener('click', () => {
+    if (!checkMetadataAndReconnectImport()) {
+      return;
+    }
+    resetUsageForm();
+    usageForm.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  });
+}
+
+if (triggerAddDamageBtn) {
+  triggerAddDamageBtn.addEventListener('click', () => {
+    if (!checkMetadataAndReconnectImport()) {
+      return;
+    }
+    resetDamageForm();
+    damageForm.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  });
+}
+
+if (triggerAddExpenseBtn) {
+  triggerAddExpenseBtn.addEventListener('click', () => {
+    if (!checkMetadataAndReconnectImport()) {
+      return;
+    }
+    resetExpenseForm();
+    expenseForm.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  });
+}
+
+if (triggerAddManagerNotesBtn) {
+  triggerAddManagerNotesBtn.addEventListener('click', () => {
+    if (!checkMetadataAndReconnectImport()) {
+      return;
+    }
+    resetManagerNotesForm();
+    managerNotesForm.scrollIntoView({ behavior: 'smooth', block: 'center' });
   });
 }
 
@@ -2217,6 +2300,7 @@ inventoryList.addEventListener('click', (event) => {
     render();
     showToast(`Deleted "${itemToDelete.name}"`, 'info');
     syncTransactionsToSheet(actionDescription = 'item deletion');
+    return;
   }
 
   if (action === 'purchase') {
@@ -2232,6 +2316,7 @@ inventoryList.addEventListener('click', (event) => {
       selectTab('tab-purchases');
       purchaseForm.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
+    return;
   }
 
   if (action === 'usage') {
@@ -2244,6 +2329,7 @@ inventoryList.addEventListener('click', (event) => {
       selectTab('tab-usage');
       usageForm.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
+    return;
   }
 
   if (action === 'damage') {
@@ -2256,8 +2342,39 @@ inventoryList.addEventListener('click', (event) => {
       selectTab('tab-damage');
       damageForm.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
+    return;
   }
 });
+
+if (lowStockList) {
+  lowStockList.addEventListener('click', (event) => {
+    const target = event.target.closest('li[data-item-id]');
+    if (!target) return;
+
+    const itemId = Number(target.dataset.itemId);
+    selectTab('tab-inventory');
+    if (lowStockCardView) {
+      lowStockCardView.open = true;
+      lowStockCardView.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+    scrollToInventoryCard(itemId);
+  });
+
+  lowStockList.addEventListener('keydown', (event) => {
+    if (event.key !== 'Enter' && event.key !== ' ') return;
+    const target = event.target.closest('li[data-item-id]');
+    if (!target) return;
+
+    event.preventDefault();
+    const itemId = Number(target.dataset.itemId);
+    selectTab('tab-inventory');
+    if (lowStockCardView) {
+      lowStockCardView.open = true;
+      lowStockCardView.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+    scrollToInventoryCard(itemId);
+  });
+}
 
 if (purchaseList) {
   purchaseList.addEventListener('click', (event) => {

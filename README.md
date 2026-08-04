@@ -104,7 +104,7 @@ The app automatically formats and synchronizes 5 distinct sheet tabs:
          - Internet Bill
          - Association Dues
          - Other
-      - Status (Paid or Pending)
+      - Status (Paid or Pending)f
       - Tag
 
 ## 2026/08/03 Deployment (vercel)
@@ -133,9 +133,12 @@ The app automatically formats and synchronizes 5 distinct sheet tabs:
     - fix UI for status/date with long item name
     - panel change on stat-cards: lowstock, expense and notes
     - add date range and status filter on Managers notes
+    - Add item button on the transactions
+    - view item from restock item list
 
 ## TODO List
 - **Master List Updates**
+    - add shortcut to item for the restock items
     - Add itemID - HOLD
     - Add ability to add image per item (store image on google drive), save image url on google sheet
 
@@ -150,11 +153,3 @@ The app automatically formats and synchronizes 5 distinct sheet tabs:
 
 - **UX improvements**
    - better looking select item name options
-   - Add item button on the transactions
-
-
-
-
-
-
-

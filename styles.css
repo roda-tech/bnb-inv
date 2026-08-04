@@ -390,6 +390,19 @@ button, input, select, textarea {
   box-shadow: 0 1px 2px rgba(180, 83, 9, 0.05);
 }
 
+.low-stock-item {
+  cursor: pointer;
+  transition: transform 0.15s ease, background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.low-stock-item:hover,
+.low-stock-item:focus-visible {
+  background-color: #fef3c7;
+  border-color: #fcd34d;
+  outline: none;
+  transform: translateY(-1px);
+}
+
 /* Forms & Inputs */
 .styled-form {
   display: grid;
@@ -629,6 +642,15 @@ button, input, select, textarea {
 .transaction-card:hover {
   border-color: #cbd5e1;
   box-shadow: var(--shadow-md);
+}
+
+.inventory-card.highlighted {
+  border-color: #f59e0b;
+  box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.15);
+}
+
+.inventory-card.highlighted .card-title {
+  color: #92400e;
 }
 
 .card-top {
