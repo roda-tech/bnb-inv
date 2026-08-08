@@ -127,7 +127,6 @@ The app automatically formats and synchronizes 5 distinct sheet tabs:
 - **Master List**
    - Added inactive status for items that have 0 minimum stock and 0 stock and will not repurchased anymore.
 
-
 ## 2026/08/04 Deployment (vercel)
 - **Updates/Fixes**
     - fix UI for status/date with long item name
@@ -135,15 +134,26 @@ The app automatically formats and synchronizes 5 distinct sheet tabs:
     - add date range and status filter on Managers notes
     - Add item button on the transactions
     - view item from restock item list
+    
+## 2026/08/08 Deployment (vercel)
+- **Updates/Fixes**
+   - Add shortcut to item for the restock items list
+   - when user scrolls down, add a side button that will enable them to go back up for those
+   - **Monetization Requirements**
+      - Privacy Policy
+      - Terms of Service
+      - Contact
+      - Pricing
+      - Contact Us
+   
 
 ## TODO List
 - **Master List Updates**
-    - add shortcut to item for the restock items
-    - Add itemID - HOLD
-    - Add ability to add image per item (store image on google drive), save image url on google sheet
+   - Add itemID - HOLD
+   - Add ability to add image per item (store image on google drive), save image url on google sheet
 
 - **Purchases**
-    - add image per purchase, should update item image when item is updated, set image to image from latest transaction when updated.
+   - Add image per purchase, should update item image when item is updated, set image with the image from latest transaction when updated.
    
 - **Reports**
    - Monthly inventory flow
@@ -153,3 +163,5 @@ The app automatically formats and synchronizes 5 distinct sheet tabs:
 
 - **UX improvements**
    - better looking select item name options
+   - auto connect off or local only
+   - improve list options

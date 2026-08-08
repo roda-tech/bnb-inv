@@ -17,7 +17,7 @@
     <div class="app-shell">
       <!-- Top Navigation & Header -->
       <header class="app-header">
-        <div class="brand">
+        <div class="brand" onclick="window.location.href='/'" style="cursor: pointer;">
           <div class="brand-icon">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
               <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
@@ -29,6 +29,8 @@
             <p class="brand-subtitle">Operational inventory and expense management</p>
           </div>
         </div>
+        <div id="top-anchor"></div>
+        <button id="floating-btn" class="hidden-btn">↑ Top</button>
 
         <div class="header-actions">
           <div class="data-month-content"  >
@@ -50,504 +52,513 @@
           </button> -->
         </div>
       </header>
+      <section id="tab-app" class="app-tab-panel active" role="tabpanel">
+        <!-- App Navigation Tabs -->
+        <nav class="nav-tabs" role="tablist" aria-label="Application Navigation">
+          <button type="button" class="nav-tab active" data-tab="tab-inventory" role="tab" aria-selected="true" aria-controls="tab-inventory">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
+            Inventory & Overview
+          </button>
+          <button type="button" class="nav-tab" data-tab="tab-purchases" role="tab" aria-selected="false" aria-controls="tab-purchases">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg>
+            Purchases
+          </button>
+          <button type="button" class="nav-tab" data-tab="tab-usage" role="tab" aria-selected="false" aria-controls="tab-usage">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+            Item Usage
+          </button>
+          <button type="button" class="nav-tab" data-tab="tab-damage" role="tab" aria-selected="false" aria-controls="tab-damage">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+            Damage Tracker
+          </button>
+          <button type="button" class="nav-tab" data-tab="tab-expenses" role="tab" aria-selected="false" aria-controls="tab-expenses">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 3h16a1 1 0 0 1 1 1v16a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z"></path><path d="M8 7h8"></path><path d="M8 12h8"></path><path d="M8 17h5"></path></svg>
+            Expenses
+          </button>
+          <button type="button" class="nav-tab" data-tab="tab-managers-notes" role="tab" aria-selected="false" aria-controls="tab-managers-notes">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+            Manager's Notes
+          </button>
+        </nav>
 
-      <!-- Main Navigation Tabs -->
-      <nav class="nav-tabs" role="tablist" aria-label="Application Navigation">
-        <button type="button" class="nav-tab active" data-tab="tab-inventory" role="tab" aria-selected="true" aria-controls="tab-inventory">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
-          Inventory & Overview
-        </button>
-        <button type="button" class="nav-tab" data-tab="tab-purchases" role="tab" aria-selected="false" aria-controls="tab-purchases">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg>
-          Purchases
-        </button>
-        <button type="button" class="nav-tab" data-tab="tab-usage" role="tab" aria-selected="false" aria-controls="tab-usage">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
-          Item Usage
-        </button>
-        <button type="button" class="nav-tab" data-tab="tab-damage" role="tab" aria-selected="false" aria-controls="tab-damage">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
-          Damage Tracker
-        </button>
-        <button type="button" class="nav-tab" data-tab="tab-expenses" role="tab" aria-selected="false" aria-controls="tab-expenses">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 3h16a1 1 0 0 1 1 1v16a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z"></path><path d="M8 7h8"></path><path d="M8 12h8"></path><path d="M8 17h5"></path></svg>
-          Expenses
-        </button>
-        <button type="button" class="nav-tab" data-tab="tab-managers-notes" role="tab" aria-selected="false" aria-controls="tab-managers-notes">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
-          Manager's Notes
-        </button>
-      </nav>
-
-      <!-- Dashboard Stats Header -->
-      <div class="stats-banner">
-        <div id="stats" class="stats-grid"></div>
-      </div>
-
-      <!-- Tab Content 1: Inventory & Overview -->
-      <section id="tab-inventory" class="tab-panel active" role="tabpanel">
-        <div class="content-grid">
-          <div class="panel main-panel">
-            <div class="panel-header">
-              <div>
-                <h2>Master Inventory</h2>
-                <p class="panel-subtitle">Manage items, stock levels, and minimum thresholds</p>
-              </div>
-              <button type="button" id="trigger-add-item-btn" class="btn btn-primary">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-                New Item
-              </button>
-            </div>
-
-            <!-- Filters -->
-            <div class="filter-card">
-              <div class="filter-row">
-                <div class="input-group">
-                  <label for="filter-name">Search Item</label>
-                  <input id="filter-name" type="search" placeholder="e.g. Bed sheets, Towels" />
-                </div>
-                <div class="input-group">
-                  <label for="filter-category">Category</label>
-                  <input id="filter-category" type="search" placeholder="e.g. Linen, Toiletries" />
-                </div>
-                <div class="input-group">
-                  <label for="filter-tags">Tags</label>
-                  <input id="filter-tags" type="search" placeholder="e.g. laundry, bathroom" />
-                </div>
-                <div class="input-group">
-                  <label for="filter-sort">Sort By</label>
-                  <select id="filter-sort" class="styled-select" >
-                    <option value="name-asc">Item Name (A–Z)</option>
-                    <option value="name-desc">Item Name (Z–A)</option>
-                  </select>
-                </div>
-              </div>
-            </div>
-            
-            <details class="low-stock-card" id="low-stock-card-view" open>
-              <summary class="card-header">
-                <h3>⚠️ Restock Attention Required</h3>
-                <span id="low-stock-count-badge" class="chip chip-warning">0 items</span>
-              </summary>
-              <ul id="low-stock-list" class="low-stock-list"></ul>
-            </details>
-            
-            <div id="inventory-list" class="inventory-grid"></div>
-          </div>
-
-          <!-- Aside: Add/Edit Item Form -->
-          <aside class="panel side-panel">
-            <div class="panel-header">
-              <div>
-                <h2 id="form-title">Add New Item</h2>
-                <p class="panel-subtitle">Current stock is calculated from transactions</p>
-              </div>
-              <button type="button" id="cancel-edit" class="btn btn-ghost btn-sm hidden">Cancel edit</button>
-            </div>
-            <form id="item-form" class="styled-form">
-              <div class="input-group">
-                <label for="item-name-input">Item name <span class="required">*</span></label>
-                <input type="text" id="item-name-input" name="name" placeholder="Bed sheets (Queen)" required />
-              </div>
-
-              <div class="form-row">
-                <div class="input-group">
-                  <label for="item-category-input">Category <span class="required">*</span></label>
-                  <input type="text" id="item-category-input" name="category" placeholder="General, Cleaning" required />
-                </div>
-                <div class="input-group">
-                  <label for="item-unit-input">Unit <span class="required">*</span></label>
-                  <input type="text" id="item-unit-input" name="unit" list="unit-options" value="piece" required />
-                </div>
-              </div>
-
-              <div class="form-row">
-                <div class="input-group">
-                  <label for="item-opening-input">Opening stock <span class="required">*</span></label>
-                  <input type="number" id="item-opening-input" name="openingStock" min="0" value="10" required />
-                </div>
-                <div class="input-group">
-                  <label for="item-price-input">Default price (₱) <span class="required">*</span></label>
-                  <input type="number" id="item-price-input" name="price" min="0" step="0.01" value="0.00" required />
-                </div>
-              </div>
-
-              <div class="form-row">
-                <div class="input-group">
-                  <label for="item-min-input">Min stock level <span class="required">*</span></label>
-                  <input type="number" id="item-min-input" name="minStock" min="0" value="5" required />
-                </div>
-                <div class="input-group">
-                  <label for="item-reorder-input">Reorder qty <span class="required">*</span></label>
-                  <input type="number" id="item-reorder-input" name="reorderQty" min="0" value="10" required />
-                </div>
-              </div>
-
-              <div class="input-group">
-                <label for="item-storage-input">Storage location</label>
-                <input type="text" id="item-storage-input" name="storage" placeholder="e.g. Closet 101 or Pantry" />
-              </div>
-
-              <div class="input-group">
-                <label for="item-tags-input">Tags</label>
-                <input type="text" id="item-tags-input" name="tags" placeholder="e.g. turnover, essential" />
-              </div>
-
-              <div class="input-group">
-                <label for="item-notes-input">Notes</label>
-                <input type="text" id="item-notes-input" name="notes" placeholder="e.g. Keep extra sets for weekend turnover" />
-              </div>
-
-              <div class="input-group">
-                <label for="item-supplier-input">Supplier</label>
-                <input type="text" id="item-supplier-input" name="supplier" placeholder="e.g. S&R / Shopee Link" />
-              </div>
-
-              <button type="submit" id="submit-item-btn" class="btn btn-primary btn-full">Save item</button>
-            </form>
-          </aside>
+        <!-- Dashboard Stats Header -->
+        <div class="stats-banner">
+          <div id="stats" class="stats-grid"></div>
         </div>
-      </section>
 
-      <!-- Tab Content 2: Purchases -->
-      <section id="tab-purchases" class="tab-panel" role="tabpanel">
-        <div class="content-grid">
-          <div class="panel main-panel">
-            <div class="panel-header">
-              <div>
-                <h2>Purchase History</h2>
-                <p class="panel-subtitle">Log of restocks & purchase transactions</p>
+        <!-- Tab Content 1: Inventory & Overview -->
+        <section id="tab-inventory" class="tab-panel active" role="tabpanel">
+          <div class="content-grid">
+            <div class="panel main-panel">
+              <div class="panel-header">
+                <div>
+                  <h2>Master Inventory</h2>
+                  <p class="panel-subtitle">Manage items, stock levels, and minimum thresholds</p>
+                </div>
+                <button type="button" id="trigger-add-item-btn" class="btn btn-primary">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                  New Item
+                </button>
               </div>
-              <button type="button" id="trigger-add-purchase-btn" class="btn btn-primary">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-                New Purchase
-              </button>
+
+              <!-- Filters -->
+              <div class="filter-card">
+                <div class="filter-row">
+                  <div class="input-group">
+                    <label for="filter-name">Search Item</label>
+                    <input id="filter-name" type="search" placeholder="e.g. Bed sheets, Towels" />
+                  </div>
+                  <div class="input-group">
+                    <label for="filter-category">Category</label>
+                    <input id="filter-category" type="search" placeholder="e.g. Linen, Toiletries" />
+                  </div>
+                  <div class="input-group">
+                    <label for="filter-tags">Tags</label>
+                    <input id="filter-tags" type="search" placeholder="e.g. laundry, bathroom" />
+                  </div>
+                  <div class="input-group">
+                    <label for="filter-sort">Sort By</label>
+                    <select id="filter-sort" class="styled-select" >
+                      <option value="name-asc">Item Name (A–Z)</option>
+                      <option value="name-desc">Item Name (Z–A)</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+              
+              <details class="low-stock-card" id="low-stock-card-view" open>
+                <summary class="card-header">
+                  <h3>⚠️ Restock Attention Required</h3>
+                  <span id="low-stock-count-badge" class="chip chip-warning">0 items</span>
+                </summary>
+                <ul id="low-stock-list" class="low-stock-list"></ul>
+              </details>
+              
+              <div id="inventory-list" class="inventory-grid"></div>
             </div>
-            <div id="purchase-list" class="transaction-grid"></div>
+
+            <!-- Aside: Add/Edit Item Form -->
+            <aside class="panel side-panel">
+              <div class="panel-header">
+                <div>
+                  <h2 id="form-title">Add New Item</h2>
+                  <p class="panel-subtitle">Current stock is calculated from transactions</p>
+                </div>
+                <button type="button" id="cancel-edit" class="btn btn-ghost btn-sm hidden">Cancel edit</button>
+              </div>
+              <form id="item-form" class="styled-form">
+                <div class="input-group">
+                  <label for="item-name-input">Item name <span class="required">*</span></label>
+                  <input type="text" id="item-name-input" name="name" placeholder="Bed sheets (Queen)" required />
+                </div>
+
+                <div class="form-row">
+                  <div class="input-group">
+                    <label for="item-category-input">Category <span class="required">*</span></label>
+                    <input type="text" id="item-category-input" name="category" placeholder="General, Cleaning" required />
+                  </div>
+                  <div class="input-group">
+                    <label for="item-unit-input">Unit <span class="required">*</span></label>
+                    <input type="text" id="item-unit-input" name="unit" list="unit-options" value="piece" required />
+                  </div>
+                </div>
+
+                <div class="form-row">
+                  <div class="input-group">
+                    <label for="item-opening-input">Opening stock <span class="required">*</span></label>
+                    <input type="number" id="item-opening-input" name="openingStock" min="0" value="10" required />
+                  </div>
+                  <div class="input-group">
+                    <label for="item-price-input">Default price (₱) <span class="required">*</span></label>
+                    <input type="number" id="item-price-input" name="price" min="0" step="0.01" value="0.00" required />
+                  </div>
+                </div>
+
+                <div class="form-row">
+                  <div class="input-group">
+                    <label for="item-min-input">Min stock level <span class="required">*</span></label>
+                    <input type="number" id="item-min-input" name="minStock" min="0" value="5" required />
+                  </div>
+                  <div class="input-group">
+                    <label for="item-reorder-input">Reorder qty <span class="required">*</span></label>
+                    <input type="number" id="item-reorder-input" name="reorderQty" min="0" value="10" required />
+                  </div>
+                </div>
+
+                <div class="input-group">
+                  <label for="item-storage-input">Storage location</label>
+                  <input type="text" id="item-storage-input" name="storage" placeholder="e.g. Closet 101 or Pantry" />
+                </div>
+
+                <div class="input-group">
+                  <label for="item-tags-input">Tags</label>
+                  <input type="text" id="item-tags-input" name="tags" placeholder="e.g. turnover, essential" />
+                </div>
+
+                <div class="input-group">
+                  <label for="item-notes-input">Notes</label>
+                  <input type="text" id="item-notes-input" name="notes" placeholder="e.g. Keep extra sets for weekend turnover" />
+                </div>
+
+                <div class="input-group">
+                  <label for="item-supplier-input">Supplier</label>
+                  <input type="text" id="item-supplier-input" name="supplier" placeholder="e.g. S&R / Shopee Link" />
+                </div>
+
+                <button type="submit" id="submit-item-btn" class="btn btn-primary btn-full">Save item</button>
+              </form>
+            </aside>
           </div>
+        </section>
 
-          <aside class="panel side-panel">
-            <div class="panel-header">
-              <div>
-                <h2 id="purchase-form-title">Record Purchase</h2>
-                <p class="panel-subtitle">Adds stock to Master Inventory</p>
-              </div>
-              <button type="button" id="cancel-purchase-edit" class="btn btn-ghost btn-sm hidden">Cancel edit</button>
-            </div>
-            <form id="purchase-form" class="styled-form">
-              <div class="input-group">
-                <label for="purchase-date">Date <span class="required">*</span></label>
-                <input type="date" id="purchase-date" name="date" required />
-              </div>
-
-              <div class="input-group">
-                <label for="purchase-item-select">Select Item <span class="required">*</span></label>
-                <select id="purchase-item-select" name="itemId" class="styled-select" required></select>
-              </div>
-
-              <div class="form-row">
-                <div class="input-group">
-                  <label for="purchase-unit">Unit <span class="required">*</span></label>
-                  <input type="text" id="purchase-unit" name="unit" list="unit-options" placeholder="sets / bottles" required />
+        <!-- Tab Content 2: Purchases -->
+        <section id="tab-purchases" class="tab-panel" role="tabpanel">
+          <div class="content-grid">
+            <div class="panel main-panel">
+              <div class="panel-header">
+                <div>
+                  <h2>Purchase History</h2>
+                  <p class="panel-subtitle">Log of restocks & purchase transactions</p>
                 </div>
-                <div class="input-group">
-                  <label for="purchase-qty">Quantity <span class="required">*</span></label>
-                  <input type="number" id="purchase-qty" name="quantity" min="1" value="1" required />
-                </div>
+                <button type="button" id="trigger-add-purchase-btn" class="btn btn-primary">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                  New Purchase
+                </button>
               </div>
-
-              <div class="input-group">
-                <label for="purchase-cost">Cost per item (₱) <span class="required">*</span></label>
-                <input type="number" id="purchase-cost" name="cost" min="0" step="0.01" value="0.00" required />
-              </div>
-
-              <div class="input-group">
-                <label for="purchase-note">Note</label>
-                <input type="text" id="purchase-note" name="note" placeholder="Notes" />
-              </div>
-
-              <div class="input-group">
-                <label for="purchase-supplier">Supplier</label>
-                <input type="text" id="purchase-supplier" name="supplier" placeholder="Supplier Info / Shopee Link" />
-              </div>
-
-              <button type="submit" id="purchase-submit-btn" class="btn btn-primary btn-full">Record Purchase</button>
-            </form>
-          </aside>
-        </div>
-      </section>
-
-      <!-- Tab Content 3: Item Usage -->
-      <section id="tab-usage" class="tab-panel" role="tabpanel">
-        <div class="content-grid">
-          <div class="panel main-panel">
-            <div class="panel-header">
-              <div>
-                <h2>Usage History</h2>
-                <p class="panel-subtitle">Supplies consumed across rooms and turnover</p>
-              </div>
-              <button type="button" id="trigger-add-usage-btn" class="btn btn-primary">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-                New Usage
-              </button>              
+              <div id="purchase-list" class="transaction-grid"></div>
             </div>
-            <div id="usage-list" class="transaction-grid"></div>
+
+            <aside class="panel side-panel">
+              <div class="panel-header">
+                <div>
+                  <h2 id="purchase-form-title">Record Purchase</h2>
+                  <p class="panel-subtitle">Adds stock to Master Inventory</p>
+                </div>
+                <button type="button" id="cancel-purchase-edit" class="btn btn-ghost btn-sm hidden">Cancel edit</button>
+              </div>
+              <form id="purchase-form" class="styled-form">
+                <div class="input-group">
+                  <label for="purchase-date">Date <span class="required">*</span></label>
+                  <input type="date" id="purchase-date" name="date" required />
+                </div>
+
+                <div class="input-group">
+                  <label for="purchase-item-select">Select Item <span class="required">*</span></label>
+                  <select id="purchase-item-select" name="itemId" class="styled-select" required></select>
+                </div>
+
+                <div class="form-row">
+                  <div class="input-group">
+                    <label for="purchase-unit">Unit <span class="required">*</span></label>
+                    <input type="text" id="purchase-unit" name="unit" list="unit-options" placeholder="sets / bottles" required />
+                  </div>
+                  <div class="input-group">
+                    <label for="purchase-qty">Quantity <span class="required">*</span></label>
+                    <input type="number" id="purchase-qty" name="quantity" min="1" value="1" required />
+                  </div>
+                </div>
+
+                <div class="input-group">
+                  <label for="purchase-cost">Cost per item (₱) <span class="required">*</span></label>
+                  <input type="number" id="purchase-cost" name="cost" min="0" step="0.01" value="0.00" required />
+                </div>
+
+                <div class="input-group">
+                  <label for="purchase-note">Note</label>
+                  <input type="text" id="purchase-note" name="note" placeholder="Notes" />
+                </div>
+
+                <div class="input-group">
+                  <label for="purchase-supplier">Supplier</label>
+                  <input type="text" id="purchase-supplier" name="supplier" placeholder="Supplier Info / Shopee Link" />
+                </div>
+
+                <button type="submit" id="purchase-submit-btn" class="btn btn-primary btn-full">Record Purchase</button>
+              </form>
+            </aside>
           </div>
+        </section>
 
-          <aside class="panel side-panel">
-            <div class="panel-header">
-              <div>
-                <h2 id="usage-form-title">Record Usage</h2>
-                <p class="panel-subtitle">Deducts stock from Master Inventory</p>
-              </div>
-              <button type="button" id="cancel-usage-edit" class="btn btn-ghost btn-sm hidden">Cancel edit</button>
-            </div>
-            <form id="usage-form" class="styled-form">
-              <div class="input-group">
-                <label for="usage-date">Date <span class="required">*</span></label>
-                <input type="date" id="usage-date" name="date" required />
-              </div>
-
-              <div class="input-group">
-                <label for="usage-item-select">Select Item <span class="required">*</span></label>
-                <select id="usage-item-select" name="itemId" class="styled-select" required></select>
-              </div>
-
-              <div class="form-row">
-                <div class="input-group">
-                  <label for="usage-unit">Unit <span class="required">*</span></label>
-                  <input type="text" id="usage-unit" name="unit" list="unit-options" placeholder="sets / bottles" required />
+        <!-- Tab Content 3: Item Usage -->
+        <section id="tab-usage" class="tab-panel" role="tabpanel">
+          <div class="content-grid">
+            <div class="panel main-panel">
+              <div class="panel-header">
+                <div>
+                  <h2>Usage History</h2>
+                  <p class="panel-subtitle">Supplies consumed across rooms and turnover</p>
                 </div>
-                <div class="input-group">
-                  <label for="usage-qty">Quantity used <span class="required">*</span></label>
-                  <input type="number" id="usage-qty" name="quantity" min="1" value="1" required />
-                </div>
+                <button type="button" id="trigger-add-usage-btn" class="btn btn-primary">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                  New Usage
+                </button>              
               </div>
-
-              <div class="input-group">
-                <label for="usage-room">Room / Location</label>
-                <input type="text" id="usage-room" name="room" placeholder="e.g. Room 201 or Master Suite" />
-              </div>
-
-              <div class="input-group">
-                <label for="usage-note">Note</label>
-                <input type="text" id="usage-note" name="note" placeholder="Turnover details or guest request" />
-              </div>
-
-              <button type="submit" id="usage-submit-btn" class="btn btn-primary btn-full">Record Usage</button>
-            </form>
-          </aside>
-        </div>
-      </section>
-
-      <!-- Tab Content 4: Damage Tracker -->
-      <section id="tab-damage" class="tab-panel" role="tabpanel">
-        <div class="content-grid">
-          <div class="panel main-panel">
-            <div class="panel-header">
-              <div>
-                <h2>Damage & Loss Records</h2>
-                <p class="panel-subtitle">Log of damaged or retired supplies</p>
-              </div>
-              <button type="button" id="trigger-add-damage-btn" class="btn btn-primary">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-                New Record
-              </button>    
+              <div id="usage-list" class="transaction-grid"></div>
             </div>
-            <div id="damage-list" class="transaction-grid"></div>
+
+            <aside class="panel side-panel">
+              <div class="panel-header">
+                <div>
+                  <h2 id="usage-form-title">Record Usage</h2>
+                  <p class="panel-subtitle">Deducts stock from Master Inventory</p>
+                </div>
+                <button type="button" id="cancel-usage-edit" class="btn btn-ghost btn-sm hidden">Cancel edit</button>
+              </div>
+              <form id="usage-form" class="styled-form">
+                <div class="input-group">
+                  <label for="usage-date">Date <span class="required">*</span></label>
+                  <input type="date" id="usage-date" name="date" required />
+                </div>
+
+                <div class="input-group">
+                  <label for="usage-item-select">Select Item <span class="required">*</span></label>
+                  <select id="usage-item-select" name="itemId" class="styled-select" required></select>
+                </div>
+
+                <div class="form-row">
+                  <div class="input-group">
+                    <label for="usage-unit">Unit <span class="required">*</span></label>
+                    <input type="text" id="usage-unit" name="unit" list="unit-options" placeholder="sets / bottles" required />
+                  </div>
+                  <div class="input-group">
+                    <label for="usage-qty">Quantity used <span class="required">*</span></label>
+                    <input type="number" id="usage-qty" name="quantity" min="1" value="1" required />
+                  </div>
+                </div>
+
+                <div class="input-group">
+                  <label for="usage-room">Room / Location</label>
+                  <input type="text" id="usage-room" name="room" placeholder="e.g. Room 201 or Master Suite" />
+                </div>
+
+                <div class="input-group">
+                  <label for="usage-note">Note</label>
+                  <input type="text" id="usage-note" name="note" placeholder="Turnover details or guest request" />
+                </div>
+
+                <button type="submit" id="usage-submit-btn" class="btn btn-primary btn-full">Record Usage</button>
+              </form>
+            </aside>
           </div>
+        </section>
 
-          <aside class="panel side-panel">
-            <div class="panel-header">
-              <div>
-                <h2 id="damage-form-title">Record Damage</h2>
-                <p class="panel-subtitle">Deducts stock from Master Inventory</p>
+        <!-- Tab Content 4: Damage Tracker -->
+        <section id="tab-damage" class="tab-panel" role="tabpanel">
+          <div class="content-grid">
+            <div class="panel main-panel">
+              <div class="panel-header">
+                <div>
+                  <h2>Damage & Loss Records</h2>
+                  <p class="panel-subtitle">Log of damaged or retired supplies</p>
+                </div>
+                <button type="button" id="trigger-add-damage-btn" class="btn btn-primary">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                  New Record
+                </button>    
               </div>
-              <button type="button" id="cancel-damage-edit" class="btn btn-ghost btn-sm hidden">Cancel edit</button>
+              <div id="damage-list" class="transaction-grid"></div>
             </div>
-            <form id="damage-form" class="styled-form">
-              <div class="input-group">
-                <label for="damage-date">Date <span class="required">*</span></label>
-                <input type="date" id="damage-date" name="date" required />
-              </div>
 
-              <div class="input-group">
-                <label for="damage-item-select">Select Item <span class="required">*</span></label>
-                <select id="damage-item-select" name="itemId" class="styled-select" required></select>
+            <aside class="panel side-panel">
+              <div class="panel-header">
+                <div>
+                  <h2 id="damage-form-title">Record Damage</h2>
+                  <p class="panel-subtitle">Deducts stock from Master Inventory</p>
+                </div>
+                <button type="button" id="cancel-damage-edit" class="btn btn-ghost btn-sm hidden">Cancel edit</button>
               </div>
+              <form id="damage-form" class="styled-form">
+                <div class="input-group">
+                  <label for="damage-date">Date <span class="required">*</span></label>
+                  <input type="date" id="damage-date" name="date" required />
+                </div>
 
-              <div class="input-group">
-                <label for="damage-qty">Quantity damaged <span class="required">*</span></label>
-                <input type="number" id="damage-qty" name="quantity" min="1" value="1" required />
-              </div>
+                <div class="input-group">
+                  <label for="damage-item-select">Select Item <span class="required">*</span></label>
+                  <select id="damage-item-select" name="itemId" class="styled-select" required></select>
+                </div>
 
-              <div class="input-group">
-                <label for="damage-location">Location</label>
-                <input type="text" id="damage-location" name="location" placeholder="e.g. Room 102 or Laundry" />
-              </div>
+                <div class="input-group">
+                  <label for="damage-qty">Quantity damaged <span class="required">*</span></label>
+                  <input type="number" id="damage-qty" name="quantity" min="1" value="1" required />
+                </div>
 
-              <div class="input-group">
-                <label for="damage-description">Description of damage</label>
-                <input type="text" id="damage-description" name="description" placeholder="e.g. Stained during guest stay" />
-              </div>
+                <div class="input-group">
+                  <label for="damage-location">Location</label>
+                  <input type="text" id="damage-location" name="location" placeholder="e.g. Room 102 or Laundry" />
+                </div>
 
-              <button type="submit" id="damage-submit-btn" class="btn btn-primary btn-full">Record Damage</button>
-            </form>
-          </aside>
-        </div>
-      </section>
+                <div class="input-group">
+                  <label for="damage-description">Description of damage</label>
+                  <input type="text" id="damage-description" name="description" placeholder="e.g. Stained during guest stay" />
+                </div>
 
-      <!-- Tab Content 5: Expense Tracker -->
-      <section id="tab-expenses" class="tab-panel" role="tabpanel">
-        <div class="content-grid">
-          <div class="panel main-panel">
-            <div class="panel-header">
-              <div>
-                <h2>Expense Tracker</h2>
-                <p class="panel-subtitle">Track business expenses and payment status</p>
-              </div>
-              <button type="button" id="trigger-add-expense-btn" class="btn btn-primary">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-                New Expense
-              </button>  
-            </div>
-            <div id="expense-list" class="transaction-grid"></div>
+                <button type="submit" id="damage-submit-btn" class="btn btn-primary btn-full">Record Damage</button>
+              </form>
+            </aside>
           </div>
+        </section>
 
-          <aside class="panel side-panel">
-            <div class="panel-header">
-              <div>
-                <h2 id="expense-form-title">Log Expense</h2>
-                <p class="panel-subtitle">Capture bills, supplies, and operating costs</p>
+        <!-- Tab Content 5: Expense Tracker -->
+        <section id="tab-expenses" class="tab-panel" role="tabpanel">
+          <div class="content-grid">
+            <div class="panel main-panel">
+              <div class="panel-header">
+                <div>
+                  <h2>Expense Tracker</h2>
+                  <p class="panel-subtitle">Track business expenses and payment status</p>
+                </div>
+                <button type="button" id="trigger-add-expense-btn" class="btn btn-primary">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                  New Expense
+                </button>  
               </div>
-              <button type="button" id="cancel-expense-edit" class="btn btn-ghost btn-sm hidden">Cancel edit</button>
+              <div id="expense-list" class="transaction-grid"></div>
             </div>
-            <form id="expense-form" class="styled-form">
-              <div class="input-group">
-                <label for="expense-date">Date <span class="required">*</span></label>
-                <input type="date" id="expense-date" name="date" required />
-              </div>
 
-              <div class="input-group">
-                <label for="expense-type">Expense Type <span class="required">*</span></label>
-                <input type="text" id="expense-type" name="type" list="expense-type-options" placeholder="e.g. Supplies or Electricity Bill" required />
+            <aside class="panel side-panel">
+              <div class="panel-header">
+                <div>
+                  <h2 id="expense-form-title">Log Expense</h2>
+                  <p class="panel-subtitle">Capture bills, supplies, and operating costs</p>
+                </div>
+                <button type="button" id="cancel-expense-edit" class="btn btn-ghost btn-sm hidden">Cancel edit</button>
               </div>
+              <form id="expense-form" class="styled-form">
+                <div class="input-group">
+                  <label for="expense-date">Date <span class="required">*</span></label>
+                  <input type="date" id="expense-date" name="date" required />
+                </div>
 
-              <div class="form-row">
                 <div class="input-group">
-                  <label for="expense-amount">Amount (₱) <span class="required">*</span></label>
-                  <input type="number" id="expense-amount" name="amount" min="0" step="0.01" value="0.00" required />
+                  <label for="expense-type">Expense Type <span class="required">*</span></label>
+                  <input type="text" id="expense-type" name="type" list="expense-type-options" placeholder="e.g. Supplies or Electricity Bill" required />
                 </div>
-                <div class="input-group">
-                  <label for="expense-status">Status</label>
-                  <select id="expense-status" name="status" class="styled-select">
-                    <option value="Pending">Pending</option>
-                    <option value="Paid">Paid</option>
-                  </select>
-                </div>
-              </div>
 
-              <div class="form-row">
-                <div class="input-group">
-                  <label for="expense-mode">Mode of Payment</label>
-                  <input type="text" id="expense-mode" name="modeOfPayment" list="expense-mode-options" placeholder="Cash, GCash, Bank Transfer" />
+                <div class="form-row">
+                  <div class="input-group">
+                    <label for="expense-amount">Amount (₱) <span class="required">*</span></label>
+                    <input type="number" id="expense-amount" name="amount" min="0" step="0.01" value="0.00" required />
+                  </div>
+                  <div class="input-group">
+                    <label for="expense-status">Status</label>
+                    <select id="expense-status" name="status" class="styled-select">
+                      <option value="Pending">Pending</option>
+                      <option value="Paid">Paid</option>
+                    </select>
+                  </div>
                 </div>
-                <div class="input-group">
-                  <label for="expense-tag">Tag</label>
-                  <input type="text" id="expense-tag" name="tag" placeholder="e.g. Operations, Housekeeping" />
-                </div>
-              </div>
 
-              <div class="input-group">
-                <label for="expense-notes">Notes</label>
-                <input type="text" id="expense-notes" name="notes" placeholder="e.g. Monthly utility bill" />
-              </div>
+                <div class="form-row">
+                  <div class="input-group">
+                    <label for="expense-mode">Mode of Payment</label>
+                    <input type="text" id="expense-mode" name="modeOfPayment" list="expense-mode-options" placeholder="Cash, GCash, Bank Transfer" />
+                  </div>
+                  <div class="input-group">
+                    <label for="expense-tag">Tag</label>
+                    <input type="text" id="expense-tag" name="tag" placeholder="e.g. Operations, Housekeeping" />
+                  </div>
+                </div>
 
-              <button type="submit" id="expense-submit-btn" class="btn btn-primary btn-full">Save Expense</button>
-            </form>
-          </aside>
-        </div>
-      </section>
+                <div class="input-group">
+                  <label for="expense-notes">Notes</label>
+                  <input type="text" id="expense-notes" name="notes" placeholder="e.g. Monthly utility bill" />
+                </div>
 
-      <section id="tab-managers-notes" class="tab-panel" role="tabpanel">
-        <div class="content-grid">
-          <div class="panel main-panel">
-            <div class="panel-header">
-              <div>
-                <h2>Manager's Notes</h2>
-                <p class="panel-subtitle">Track daily follow-ups, room issues, and manager priorities</p>
-              </div>
-              <button type="button" id="trigger-add-note-btn" class="btn btn-primary">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-                New Note
-              </button>    
-            </div>
-            <div class="filter-card">
-              <div class="filter-row">
-                <div class="input-group">
-                  <label for="manager-notes-date-from">Date From</label>
-                  <input type="date" id="manager-notes-date-from" />
-                </div>
-                <div class="input-group">
-                  <label for="manager-notes-date-to">Date To</label>
-                  <input type="date" id="manager-notes-date-to" />
-                </div>
-                <div class="input-group">
-                  <label for="manager-notes-status-filter">Status</label>
-                  <select id="manager-notes-status-filter" class="styled-select">
-                    <option value="all">All Statuses</option>
-                    <option value="Urgent">Urgent</option>
-                    <option value="Pending">Pending</option>
-                    <option value="Dismissed">Dismissed</option>
-                    <option value="Completed">Completed</option>
-                  </select>
-                </div>
-              </div>
-            </div>
-            <div id="manager-notes-list" class="transaction-grid"></div>
+                <button type="submit" id="expense-submit-btn" class="btn btn-primary btn-full">Save Expense</button>
+              </form>
+            </aside>
           </div>
+        </section>
 
-          <aside class="panel side-panel">
-            <div class="panel-header">
-              <div>
-                <h2 id="manager-notes-form-title">Add Manager Note</h2>
-                <p class="panel-subtitle">Log notes with status tracking</p>
+        <section id="tab-managers-notes" class="tab-panel" role="tabpanel">
+          <div class="content-grid">
+            <div class="panel main-panel">
+              <div class="panel-header">
+                <div>
+                  <h2>Manager's Notes</h2>
+                  <p class="panel-subtitle">Track daily follow-ups, room issues, and manager priorities</p>
+                </div>
+                <button type="button" id="trigger-add-note-btn" class="btn btn-primary">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                  New Note
+                </button>    
               </div>
-              <button type="button" id="cancel-manager-notes-edit" class="btn btn-ghost btn-sm hidden">Cancel edit</button>
+              <div class="filter-card">
+                <div class="filter-row">
+                  <div class="input-group">
+                    <label for="manager-notes-date-from">Date From</label>
+                    <input type="date" id="manager-notes-date-from" />
+                  </div>
+                  <div class="input-group">
+                    <label for="manager-notes-date-to">Date To</label>
+                    <input type="date" id="manager-notes-date-to" />
+                  </div>
+                  <div class="input-group">
+                    <label for="manager-notes-status-filter">Status</label>
+                    <select id="manager-notes-status-filter" class="styled-select">
+                      <option value="all">All Statuses</option>
+                      <option value="Urgent">Urgent</option>
+                      <option value="Pending">Pending</option>
+                      <option value="Dismissed">Dismissed</option>
+                      <option value="Completed">Completed</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+              <div id="manager-notes-list" class="transaction-grid"></div>
             </div>
-            <form id="manager-notes-form" class="styled-form">
-              <div class="input-group">
-                <label for="manager-note-date">Date <span class="required">*</span></label>
-                <input type="date" id="manager-note-date" name="date" required />
-              </div>
 
-              <div class="input-group">
-                <label for="manager-note-notes">Notes <span class="required">*</span></label>
-                <textarea id="manager-note-notes" name="notes" rows="5" placeholder="Enter the manager note or follow-up here..." required></textarea>
-              </div>
-
-              <div class="form-row">
-                <div class="input-group">
-                  <label for="manager-note-room">Room</label>
-                  <input type="text" id="manager-note-room" name="room" placeholder="e.g. Room 201" />
+            <aside class="panel side-panel">
+              <div class="panel-header">
+                <div>
+                  <h2 id="manager-notes-form-title">Add Manager Note</h2>
+                  <p class="panel-subtitle">Log notes with status tracking</p>
                 </div>
-                <div class="input-group">
-                  <label for="manager-note-status">Status</label>
-                  <select id="manager-note-status" name="status" class="styled-select">
-                    <option value="Urgent">Urgent</option>
-                    <option value="Pending">Pending</option>
-                    <option value="Dismissed">Dismissed</option>
-                    <option value="Completed">Completed</option>
-                  </select>
-                </div>
+                <button type="button" id="cancel-manager-notes-edit" class="btn btn-ghost btn-sm hidden">Cancel edit</button>
               </div>
+              <form id="manager-notes-form" class="styled-form">
+                <div class="input-group">
+                  <label for="manager-note-date">Date <span class="required">*</span></label>
+                  <input type="date" id="manager-note-date" name="date" required />
+                </div>
 
-              <button type="submit" id="manager-notes-submit-btn" class="btn btn-primary btn-full">Save Note</button>
-            </form>
-          </aside>
-        </div>
-      </section>
-    </div>
+                <div class="input-group">
+                  <label for="manager-note-notes">Notes <span class="required">*</span></label>
+                  <textarea id="manager-note-notes" name="notes" rows="5" placeholder="Enter the manager note or follow-up here..." required></textarea>
+                </div>
+
+                <div class="form-row">
+                  <div class="input-group">
+                    <label for="manager-note-room">Room</label>
+                    <input type="text" id="manager-note-room" name="room" placeholder="e.g. Room 201" />
+                  </div>
+                  <div class="input-group">
+                    <label for="manager-note-status">Status</label>
+                    <select id="manager-note-status" name="status" class="styled-select">
+                      <option value="Urgent">Urgent</option>
+                      <option value="Pending">Pending</option>
+                      <option value="Dismissed">Dismissed</option>
+                      <option value="Completed">Completed</option>
+                    </select>
+                  </div>
+                </div>
+                <button type="submit" id="manager-notes-submit-btn" class="btn btn-primary btn-full">Save Note</button>
+              </form>
+            </aside>
+          </div>
+        </section>
+      </section> <!-- tab-app end-->
+
+      <div id="footer-placeholder"></div>
+      <script>
+        fetch('common/footer.html')
+            .then(response => response.text())
+            .then(data => {
+                document.getElementById('footer-placeholder').innerHTML = data;
+            });
+      </script>
+    </div> <!-- app-shell end -->
 
     <!-- Google Sync Settings Modal -->
     <div id="sync-modal" class="modal-backdrop hidden">
@@ -602,7 +613,6 @@
         </div>
       </div>
     </div>
-
     <!-- Google Sync Action Prompt Modal -->
     <div id="sync-prompt-modal" class="modal-backdrop hidden">
       <div class="modal-card">
@@ -618,7 +628,6 @@
           </div>
           <button type="button" id="close-sync-prompt-btn" class="icon-btn" aria-label="Close prompt">&times;</button>
         </div>
-
         <div class="modal-body">
           <p id="sync-prompt-message" class="sync-prompt-message">A sync action is required for your Google Sheet data.</p>
           <div class="button-row" style="margin-top: 20px;">
@@ -628,7 +637,6 @@
         </div>
       </div>
     </div>
-
     <!-- Toast Notification Container -->
     <div id="toast-container" class="toast-container"></div>
 
@@ -639,3 +647,4 @@
     <script src="app.js"></script>
   </body>
 </html>
+

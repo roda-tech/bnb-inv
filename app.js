@@ -732,21 +732,26 @@ async function googleSheetsFetch(path, options = {}) {
     throw new Error('Google Sheets access token is not available.');
   }
 
-  const response = await fetch(path, {
-    ...options,
-    headers: {
-      Authorization: `Bearer ${sheetAccessToken}`,
-      'Content-Type': 'application/json',
-      ...(options.headers || {})
+  try {
+    const response = await fetch(path, {
+      ...options,
+      headers: {
+        Authorization: `Bearer ${sheetAccessToken}`,
+        'Content-Type': 'application/json',
+        ...(options.headers || {})
+      }
+    });
+
+    const payload = await response.json().catch(() => null);
+    if (!response.ok) {
+      throw new Error(payload?.error?.message || `Google Sheets request failed with status ${response.status}`);
     }
-  });
 
-  const payload = await response.json().catch(() => null);
-  if (!response.ok) {
-    throw new Error(payload?.error?.message || `Google Sheets request failed with status ${response.status}`);
+    return payload;
+
+  } catch (error) {
+    throw new Error(`Error fetching Google Sheets data: ${error.message}`);
   }
-
-  return payload;
 }
 
 async function getSpreadsheetMetadata() {
@@ -817,6 +822,13 @@ function canSyncWithSheet() {
 
 async function checkMetadataAndReconnectImport() {
   let isOk = true;
+
+  //TODO: For testing purposes, also for no connection feature
+  // let checkingOff = true;
+  // if (checkingOff) {
+  //   return isOk;
+  // }
+
   try { 
     const metadata = await getSpreadsheetMetadata();
   } catch (error) {
@@ -1105,7 +1117,6 @@ function resetForm() {
   editingItemId = null;
   formTitle.textContent = 'Add Inventory Item';
   submitBtn.textContent = 'Save item';
-  formItemNameInput.focus();
   cancelEditBtn.classList.add('hidden');
 }
 
@@ -1799,6 +1810,7 @@ if (triggerAddItemBtn) {
     }
     resetForm();
     form.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    formItemNameInput.focus();
   });
 }
 
@@ -2570,6 +2582,21 @@ if (managerNotesStatusFilter) {
   managerNotesStatusFilter.addEventListener('change', renderManagerNotes);
 }
 
+function handleRouting() {
+    const path = window.location.pathname;
+    const homeSection = document.getElementById('main-content');
+    const privacySection = document.getElementById('privacy-content');
+
+    if (path === '#privacy' || path === '/privacy/') {
+      console.log('Privacy policy route detected');
+    } else {
+      console.log(path);
+      console.log('Privacy policy route not detected, defaulting to home');
+    }
+
+    return true;
+}
+
 /* --- Initialization --- */
 setupTabs();
 setupSyncModal();
@@ -2607,6 +2634,37 @@ async function initializeGoogleSync() {
 }
 
 window.addEventListener('load', async () => {
-  handleGoogleOAuthRedirect();
+  console.log('Window loaded. Initializing app...');
+  if (handleRouting()){
+    handleGoogleOAuthRedirect();
+  }
+
   await initializeGoogleSync();
+});
+
+// Select elements
+const anchor = document.getElementById('top-anchor');
+const button = document.getElementById('floating-btn');
+
+// Create the observer
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    // isIntersecting is true when the top anchor is visible
+    if (entry.isIntersecting) {
+      button.classList.add('hidden-btn');
+    } else {
+      button.classList.remove('hidden-btn');
+    }
+  });
+}, {
+  root: null, // defaults to the browser viewport
+  threshold: 0 // triggers as soon as even 1 pixel changes
+});
+
+// Start observing the top anchor
+observer.observe(anchor);
+
+// Optional: Scroll to top functionality
+button.addEventListener('click', () => {
+  window.scrollTo({ top: 0, behavior: 'smooth' });
 });
